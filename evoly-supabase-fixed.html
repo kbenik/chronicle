@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evoly</title>
+    
+    <!-- Add Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Existing scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@latest/dist/mobilenet.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exif-js/2.3.0/exif.min.js"></script>
+
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --light-gray: #f8f9fa;
+            --medium-gray: #e9ecef;
+            --dark-gray: #343a40;
+            --text-color: #212529;
+            --card-bg: #ffffff;
+            --danger-color: #dc3545;
+            --border-radius: 8px;
+            --box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            background-color: var(--light-gray);
+            color: var(--text-color);
+            line-height: 1.6;
+            overscroll-behavior-y: contain;
+        }
+
+        .app-container {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 0;
+        }
+
+        .view {
+            padding: 20px;
+            min-height: calc(100vh - 40px); 
+            box-sizing: border-box;
+            background-color: var(--light-gray);
+        }
+
+        h1, h2 {
+            color: var(--dark-gray);
+            margin-top: 0;
+        }
+
+        button, input[type="submit"] {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.2s ease;
+        }
+        button:hover, input[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+        button.secondary {
+            background-color: var(--secondary-color);
+        }
+        button.secondary:hover {
+            background-color: #545b62;
+        }
+        button.danger {
+            background-color: var(--danger-color);
+        }
+        button.danger:hover {
+            background-color: #c82333;
+        }
+
+        input[type="text"], input[type="email"], input[type="tel"], input[type="password"], input[type="date"], textarea {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid var(--medium-gray);
+            border-radius: var(--border-radius);
+            font-size: 1em;
+            box-sizing: border-box;
+        }
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: var(--box-shadow);
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        .card:hover { transform: translateY(-2px); }
+
+        .fab { 
+            position: fixed; bottom: 30px; right: 30px;
+            width: 56px; height: 56px; border-radius: 50%;
+            background-color: var(--primary-color); color: white;
+            font-size: 24px; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2); cursor: pointer; z-index: 1000;
+        }
+        .fab:hover { background-color: #0056b3; }
+
+        #login-view, #signup-view, #new-collection-modal-view {
+            display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;
+        }
+        #login-view form, #signup-view form, #new-collection-modal-view form {
+            width: 100%; max-width: 400px; background-color: var(--card-bg);
+            padding: 30px; border-radius: var(--border-radius); box-shadow: var(--box-shadow);
+        }
+
+        #home-view header, #collection-timeline-view header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px; flex-wrap: wrap; 
+        }
+        #home-view .header-actions, #collection-timeline-view .header-actions {
+            display: flex; gap: 10px; margin-left: auto; 
+        }
+         #home-view header h1, #collection-timeline-view header h2 { margin-right: auto; }
+
+        #home-view #collections-container, #collection-timeline-view #entries-timeline-container {
+            display: flex; flex-direction: column; gap: 16px;
+        }
+
+        .entry-tile { padding: 12px; display: flex; gap: 12px; align-items: flex-start; }
+        .entry-tile-thumbnail {
+            width: 80px; height: 80px; object-fit: cover;
+            border-radius: 4px; flex-shrink: 0;
+        }
+        .entry-tile-content { flex-grow: 1; min-width: 0; }
+        .entry-tile-content h3 {
+            margin: 0 0 5px 0; font-size: 1.1em;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .entry-tile-notes-snippet {
+            font-size: 0.9em; color: var(--secondary-color); margin-bottom: 8px;
+            max-height: 3.6em; overflow: hidden; text-overflow: ellipsis;
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+        }
+        .tag-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 5px; }
+        .tag-chip {
+            background-color: var(--medium-gray); color: var(--dark-gray);
+            padding: 3px 8px; border-radius: 12px; font-size: 0.75em;
+        }
+        .days-since-badge { font-size: 0.75em; color: var(--primary-color); font-weight: bold; }
+
+        #new-entry-view #image-upload-label {
+            display: block; width: 100%; height: 200px;
+            border: 2px dashed var(--medium-gray); border-radius: var(--border-radius);
+            display: flex; align-items: center; justify-content: center; cursor: pointer;
+            margin-bottom: 15px; background-color: var(--card-bg);
+            text-align: center; color: var(--secondary-color);
+        }
+        #new-entry-view #image-upload-label:hover { border-color: var(--primary-color); }
+        
+        #new-entry-view #image-preview-wrapper { margin-bottom: 15px; text-align: center; }
+        #new-entry-view #image-preview-container { position: relative; display: inline-block; max-width: 100%; }
+        #new-entry-view #image-preview {
+            max-width: 100%; max-height: 300px;
+            border-radius: var(--border-radius); display: block;
+        }
+        #new-entry-view #remove-image-btn {
+            position: absolute; top: 8px; right: 8px;
+            background: rgba(220, 53, 69, 0.8); color: white;
+            border: 1px solid rgba(255,255,255,0.5); border-radius: 50%;
+            width: 30px; height: 30px; font-size: 20px; cursor: pointer;
+            line-height: 28px; text-align: center; padding:0;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        #date-prompt-message { font-size: 0.9em; color: var(--secondary-color); margin-top: -10px; margin-bottom: 10px; }
+        #tag-bar {
+            display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px;
+            padding: 10px; border: 1px solid var(--medium-gray);
+            border-radius: var(--border-radius); background-color: var(--card-bg);
+        }
+        .suggested-tag {
+            padding: 5px 10px; border-radius: 15px;
+            background-color: var(--medium-gray); cursor: pointer; transition: background-color 0.2s;
+        }
+        .suggested-tag.selected { background-color: var(--primary-color); color: white; }
+        #custom-tag-input { flex-grow: 1; border: none; padding: 5px; min-width: 100px; }
+
+        #entry-detail-view #detail-image-container {
+            width: 100%; height: 40vh; background-color: var(--dark-gray); 
+            display: flex; align-items: center; justify-content: center; margin-bottom: 20px;
+        }
+        #entry-detail-view #detail-image { max-width: 100%; max-height: 100%; object-fit: contain; }
+        #entry-detail-view #detail-content { padding: 0 10px; }
+        #entry-detail-view #detail-content h2 { margin-top: 0; }
+        #entry-detail-view #detail-tags .tag-chip { font-size: 0.9em; }
+        #entry-detail-view #detail-metadata { font-size: 0.9em; color: var(--secondary-color); margin-top: 10px; }
+        .detail-nav { display: flex; justify-content: space-between; margin-top: 20px; }
+        #delete-entry-btn { margin-top: 20px; display: block; width: 100%; }
+        
+        .loader {
+            border: 4px solid var(--medium-gray); border-top: 4px solid var(--primary-color);
+            border-radius: 50%; width: 30px; height: 30px;
+            animation: spin 1s linear infinite; margin: 20px auto;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .hidden { display: none !important; }
+        .text-center { text-align: center; }
+        .my-2 { margin-top: 1rem; margin-bottom: 1rem; }
+        .back-button {
+            background: none; border: none; color: var(--primary-color);
+            font-size: 1em; cursor: pointer; padding: 5px 0; margin-right: 15px; 
+        }
+        
+        .error-message {
+            color: var(--danger-color);
+            font-size: 0.9em;
+            margin-top: -10px;
+            margin-bottom: 10px;
+        }
+        
+        .switch-link {
+            color: var(--primary-color);
+            cursor: pointer;
+            text-decoration: underline;
+            margin-top: 15px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div id="app-container">
+        <!-- Login View -->
+        <div id="login-view" class="view hidden">
+            <form id="login-form">
+                <h1>Evoly</h1>
+                <p>Track your journeys, one photo at a time.</p>
+                <div class="form-group">
+                    <label for="login-email">Email</label>
+                    <input type="email" id="login-email" required>
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" required>
+                </div>
+                <button type="submit">Sign In</button>
+                <div id="login-error" class="error-message hidden"></div>
+                <span class="switch-link" id="switch-to-signup">Don't have an account? Sign up</span>
+            </form>
+        </div>
+
+        <!-- Signup View -->
+        <div id="signup-view" class="view">
+            <form id="signup-form">
+                <h1>Evoly</h1>
+                <p>Track your journeys, one photo at a time.</p>
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="phone">Phone (Optional)</label>
+                    <input type="tel" id="phone">
+                </div>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" required>
+                </div>
+                <button type="submit">Sign Up</button>
+                <div id="signup-error" class="error-message hidden"></div>
+                <span class="switch-link" id="switch-to-login">Already have an account? Sign in</span>
+            </form>
+        </div>
+
+        <!-- Home View -->
+        <div id="home-view" class="view hidden">
+            <header>
+                <h1 id="greeting">Welcome!</h1>
+                <div class="header-actions">
+                    <button id="new-collection-btn-home">New Collection</button>
+                    <button id="sign-out-btn" class="secondary">Sign Out</button>
+                </div>
+            </header>
+            <div id="collections-container"></div>
+            <p id="no-collections-message" class="text-center my-2 hidden">No collections yet. Start your first one!</p>
+            <div id="collections-loading" class="loader hidden"></div>
+        </div>
+
+        <!-- New Collection Modal/View -->
+        <div id="new-collection-modal-view" class="view hidden">
+            <form id="new-collection-form">
+                <h2>New Collection</h2>
+                <div class="form-group">
+                    <label for="collection-name">Collection Name</label>
+                    <input type="text" id="collection-name" required>
+                </div>
+                <button type="submit">Create Collection</button>
+                <button type="button" class="secondary" id="cancel-new-collection-btn" style="margin-top: 10px;">Cancel</button>
+            </form>
+        </div>
+        
+        <!-- Collection Timeline View -->
+        <div id="collection-timeline-view" class="view hidden">
+            <header>
+                <button class="back-button" id="back-to-home-btn">&lt; Home</button>
+                <h2 id="collection-title-timeline">Collection Timeline</h2>
+                <div class="header-actions">
+                    <button id="delete-collection-btn" class="danger">Delete Collection</button>
+                </div>
+            </header>
+            <div id="entries-timeline-container"></div>
+            <p id="no-entries-message" class="text-center my-2 hidden">No entries yet. Add your first one!</p>
+            <div id="entries-loading" class="loader hidden"></div>
+            <button id="add-entry-fab" class="fab">+</button>
+        </div>
+
+        <!-- New Entry View -->
+        <div id="new-entry-view" class="view hidden">
+            <header style="margin-bottom: 20px;">
+                 <button class="back-button" id="back-to-timeline-btn">&lt; Cancel</button>
+                 <h2>New Entry</h2>
+            </header>
+            <form id="new-entry-form">
+                <input type="file" id="image-upload" accept="image/*" class="hidden">
+                <label for="image-upload" id="image-upload-label">
+                    <div>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" class="bi bi-camera" viewBox="0 0 16 16">
+                          <path d="M15 12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h1.172a3 3 0 0 0 2.12-.879l.83-.828A1 1 0 0 1 6.827 3h2.344a1 1 0 0 1 .707.293l.828.828A3 3 0 0 0 12.828 5H14a1 1 0 0 1 1 1v6zM2 4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1.172a2 2 0 0 1-1.414-.586l-.828-.828A2 2 0 0 0 9.172 2H6.828a2 2 0 0 0-1.414.586l-.828.828A2 2 0 0 1 3.172 4H2z"/>
+                          <path d="M8 11a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5zm0 1a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM3 6.5a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0z"/>
+                        </svg>
+                        <p>Tap to select or snap a photo</p>
+                    </div>
+                </label>
+                
+                <div id="image-preview-wrapper" class="hidden">
+                    <div id="image-preview-container">
+                        <img id="image-preview" alt="Image preview">
+                        <button type="button" id="remove-image-btn" title="Remove image">&times;</button>
+                    </div>
+                </div>
+                <div id="image-processing-loader" class="loader hidden"></div>
+
+                <div class="form-group">
+                    <label for="entry-date">Date</label>
+                    <input type="date" id="entry-date" required>
+                    <p id="date-prompt-message" class="hidden">Please set the date manually.</p>
+                </div>
+                <div class="form-group">
+                    <label for="entry-title">Title</label>
+                    <input type="text" id="entry-title" required>
+                </div>
+                <div class="form-group">
+                    <label for="entry-notes">Notes/Observations</label>
+                    <textarea id="entry-notes"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Tags (AI suggestions, click to toggle, or type your own)</label>
+                    <div id="tag-bar">
+                        <input type="text" id="custom-tag-input" placeholder="Add custom tag...">
+                    </div>
+                    <button type="button" id="add-custom-tag-btn" class="secondary" style="margin-top:5px; font-size:0.9em;">Add Tag</button>
+                </div>
+                <button type="submit" id="create-entry-btn">Create Entry</button>
+                <div id="entry-upload-loader" class="loader hidden"></div>
+            </form>
+        </div>
+
+        <!-- Entry Detail View -->
+        <div id="entry-detail-view" class="view hidden">
+            <header style="margin-bottom: 0;">
+                <button class="back-button" id="back-to-timeline-from-detail-btn">&lt; Back to Timeline</button>
+            </header>
+            <div id="detail-image-container">
+                <img id="detail-image" alt="Entry image">
+            </div>
+            <div id="detail-content">
+                <h2 id="detail-title">Entry Title</h2>
+                <p id="detail-notes">Full narrative here...</p>
+                <div id="detail-tags" class="tag-chips"></div>
+                <p id="detail-metadata">Date: YYYY-MM-DD</p>
+                <div class="detail-nav">
+                    <button id="prev-entry-btn" class="secondary">Previous</button>
+                    <button id="next-entry-btn" class="secondary">Next</button>
+                </div>
+                <button id="delete-entry-btn" class="danger">Delete This Entry</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration - Replace these with your values
+        const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+        
+        // Initialize Supabase
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // App State
+        const appState = {
+            currentUser: null,
+            collections: [],
+            currentView: 'signup',
+            activeCollectionId: null,
+            activeEntryId: null,
+            activeEntries: [],
+            mobilenetModel: null,
+            selectedImageFile: null,
+            selectedImageDataURL: null,
+            currentTags: [],
+        };
+
+        // View Elements
+        const views = {
+            signup: document.getElementById('signup-view'),
+            login: document.getElementById('login-view'),
+            home: document.getElementById('home-view'),
+            newCollectionModal: document.getElementById('new-collection-modal-view'),
+            collectionTimeline: document.getElementById('collection-timeline-view'),
+            newEntry: document.getElementById('new-entry-view'),
+            entryDetail: document.getElementById('entry-detail-view'),
+        };
+
+        // Form Elements
+        const loginForm = document.getElementById('login-form');
+        const signupForm = document.getElementById('signup-form');
+        const newCollectionForm = document.getElementById('new-collection-form');
+        const newEntryForm = document.getElementById('new-entry-form');
+        
+        // Get all other elements
+        const greetingEl = document.getElementById('greeting');
+        const collectionsContainer = document.getElementById('collections-container');
+        const noCollectionsMessage = document.getElementById('no-collections-message');
+        const collectionsLoading = document.getElementById('collections-loading');
+        const collectionTitleTimeline = document.getElementById('collection-title-timeline');
+        const entriesTimelineContainer = document.getElementById('entries-timeline-container');
+        const noEntriesMessage = document.getElementById('no-entries-message');
+        const entriesLoading = document.getElementById('entries-loading');
+        const imageUploadInput = document.getElementById('image-upload');
+        const imageUploadLabel = document.getElementById('image-upload-label');
+        const imagePreviewWrapper = document.getElementById('image-preview-wrapper');
+        const imagePreview = document.getElementById('image-preview');
+        const imageProcessingLoader = document.getElementById('image-processing-loader');
+        const entryDateInput = document.getElementById('entry-date');
+        const datePromptMessage = document.getElementById('date-prompt-message');
+        const tagBar = document.getElementById('tag-bar');
+        const entryUploadLoader = document.getElementById('entry-upload-loader');
+        const detailImage = document.getElementById('detail-image');
+        const detailTitle = document.getElementById('detail-title');
+        const detailNotes = document.getElementById('detail-notes');
+        const detailTagsContainer = document.getElementById('detail-tags');
+        const detailMetadata = document.getElementById('detail-metadata');
+        const loginError = document.getElementById('login-error');
+        const signupError = document.getElementById('signup-error');
+
+        // Navigation function
+        function navigateTo(viewId) {
+            appState.currentView = viewId;
+            Object.keys(views).forEach(id => {
+                views[id].classList.add('hidden');
+            });
+            if (views[viewId]) {
+                views[viewId].classList.remove('hidden');
+            }
+            window.scrollTo(0, 0);
+        }
+
+        // Utility functions
+        function formatDate(dateStrOrObj) {
+            const date = new Date(dateStrOrObj);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function daysBetween(d1Str, d2Str) {
+            if (!d1Str || !d2Str) return null;
+            const d1 = new Date(d1Str);
+            const d2 = new Date(d2Str);
+            if (isNaN(d1) || isNaN(d2)) return null;
+            return Math.ceil(Math.abs(d2 - d1) / (1000 * 60 * 60 * 24));
+        }
+
+        // Supabase Auth Functions
+        async function checkAuth() {
+            try {
+                const { data: { user } } = await supabaseClient.auth.getUser();
+                if (user) {
+                    appState.currentUser = user;
+                    // Try to get profile data
+                    const { data: profile } = await supabaseClient
+                        .from('profiles')
+                        .select('*')
+                        .eq('id', user.id)
+                        .single();
+                    
+                    if (profile) {
+                        appState.currentUser.username = profile.username;
+                        appState.currentUser.phone = profile.phone;
+                    }
+                    
+                    await loadCollections();
+                    renderHomeView();
+                    navigateTo('home');
+                } else {
+                    navigateTo('signup');
+                }
+            } catch (error) {
+                console.error('Auth check error:', error);
+                navigateTo('signup');
+            }
+        }
+
+        // Database Functions
+        async function loadCollections() {
+            collectionsLoading.classList.remove('hidden');
+            try {
+                const { data: collections, error } = await supabaseClient
+                    .from('collections')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                appState.collections = collections || [];
+                
+                // Load entry counts and last entry dates
+                for (const collection of appState.collections) {
+                    const { count } = await supabaseClient
+                        .from('entries')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('collection_id', collection.id);
+                    
+                    collection.entryCount = count || 0;
+                    
+                    const { data: lastEntry } = await supabaseClient
+                        .from('entries')
+                        .select('date')
+                        .eq('collection_id', collection.id)
+                        .order('date', { ascending: false })
+                        .limit(1)
+                        .single();
+                    
+                    collection.lastEntryDate = lastEntry?.date;
+                }
+            } catch (error) {
+                console.error('Error loading collections:', error);
+            } finally {
+                collectionsLoading.classList.add('hidden');
+            }
+        }
+
+        async function loadEntries(collectionId) {
+            entriesLoading.classList.remove('hidden');
+            try {
+                const { data: entries, error } = await supabaseClient
+                    .from('entries')
+                    .select('*')
+                    .eq('collection_id', collectionId)
+                    .order('date', { ascending: true });
+
+                if (error) throw error;
+                return entries || [];
+            } catch (error) {
+                console.error('Error loading entries:', error);
+                return [];
+            } finally {
+                entriesLoading.classList.add('hidden');
+            }
+        }
+
+        async function uploadImage(file, userId) {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${userId}/${Date.now()}.${fileExt}`;
+            
+            const { data, error } = await supabaseClient.storage
+                .from('entry-images')
+                .upload(fileName, file);
+
+            if (error) throw error;
+
+            const { data: { publicUrl } } = supabaseClient.storage
+                .from('entry-images')
+                .getPublicUrl(fileName);
+
+            return publicUrl;
+        }
+
+        // TensorFlow Model
+        async function loadTFModel() {
+            try {
+                appState.mobilenetModel = await mobilenet.load();
+                console.log("MobileNet model loaded.");
+            } catch (e) {
+                console.error("Error loading MobileNet model:", e);
+            }
+        }
+
+        async function predictTagsForImage(imgEl) {
+            if (!appState.mobilenetModel) return [];
+            imageProcessingLoader.classList.remove('hidden');
+            try {
+                const predictions = await appState.mobilenetModel.classify(imgEl);
+                const tags = predictions.slice(0, 5).map(p => {
+                    let tn = p.className.split(',')[0].trim().toLowerCase();
+                    if (tn.includes('dog') || tn.includes('puppy')) return 'Puppy';
+                    if (tn.includes('cat') || tn.includes('kitten')) return 'Kitten';
+                    if (tn.includes('flower') || tn.includes('blossom')) return 'Flowering';
+                    if (tn.includes('cactus')) return 'Cactus';
+                    if (tn.includes('plant') || tn.includes('flora')) return 'Plant';
+                    return p.className.split(',')[0].trim().charAt(0).toUpperCase() + 
+                           p.className.split(',')[0].trim().slice(1);
+                });
+                return [...new Set(tags)].slice(0, 4);
+            } catch (e) {
+                console.error("Prediction error:", e);
+                return [];
+            } finally {
+                imageProcessingLoader.classList.add('hidden');
+            }
+        }
+
+        // Render Functions
+        function renderHomeView() {
+            if (!appState.currentUser) {
+                navigateTo('signup');
+                return;
+            }
+            greetingEl.textContent = `Welcome, ${appState.currentUser.username || appState.currentUser.email.split('@')[0]}!`;
+            collectionsContainer.innerHTML = '';
+            noCollectionsMessage.classList.toggle('hidden', appState.collections.length > 0);
+            
+            appState.collections.forEach(col => {
+                const card = document.createElement('div');
+                card.className = 'card collection-card';
+                card.dataset.id = col.id;
+                card.innerHTML = `
+                    <h3>${col.name}</h3>
+                    <p>${col.entryCount || 0} entries. ${col.lastEntryDate ? `Last: ${formatDate(col.lastEntryDate)}` : 'No entries'}</p>
+                `;
+                card.onclick = () => {
+                    appState.activeCollectionId = col.id;
+                    renderCollectionTimelineView();
+                    navigateTo('collectionTimeline');
+                };
+                collectionsContainer.appendChild(card);
+            });
+        }
+
+        async function renderCollectionTimelineView() {
+            const collection = appState.collections.find(c => c.id === appState.activeCollectionId);
+            if (!collection) {
+                console.error("Collection not found");
+                navigateTo('home');
+                return false;
+            }
+
+            collectionTitleTimeline.textContent = collection.name;
+            entriesTimelineContainer.innerHTML = '';
+            
+            appState.activeEntries = await loadEntries(collection.id);
+            noEntriesMessage.classList.toggle('hidden', appState.activeEntries.length > 0);
+            
+            let prevDate = null;
+            appState.activeEntries.forEach((entry, idx) => {
+                const tile = document.createElement('div');
+                tile.className = 'card entry-tile';
+                tile.dataset.id = entry.id;
+                
+                const daysDiff = prevDate ? daysBetween(prevDate, entry.date) : null;
+                let badge = '';
+                if (daysDiff !== null && daysDiff > 0) {
+                    badge = `<span class="days-since-badge">${daysDiff} day${daysDiff > 1 ? 's' : ''} later</span>`;
+                } else if (idx > 0 && daysDiff === 0) {
+                    badge = `<span class="days-since-badge">Same day</span>`;
+                }
+                
+                const notesSnip = entry.notes ? (entry.notes.length > 100 ? entry.notes.substring(0, 100) + '...' : entry.notes) : '';
+                tile.innerHTML = `
+                    <img src="${entry.image_url}" alt="${entry.title}" class="entry-tile-thumbnail">
+                    <div class="entry-tile-content">
+                        <h3>${entry.title}</h3>
+                        <p class="entry-tile-notes-snippet">${notesSnip || 'No notes.'}</p>
+                        <div class="tag-chips">
+                            ${(entry.tags || []).map(t => `<span class="tag-chip">${t}</span>`).join('')}
+                        </div>
+                        ${badge}
+                    </div>
+                `;
+                tile.onclick = () => {
+                    appState.activeEntryId = entry.id;
+                    renderEntryDetailView(entry);
+                    navigateTo('entryDetail');
+                };
+                entriesTimelineContainer.appendChild(tile);
+                prevDate = entry.date;
+            });
+            return true;
+        }
+
+        function renderNewEntryForm() {
+            newEntryForm.reset();
+            imagePreviewWrapper.classList.add('hidden');
+            imageUploadLabel.classList.remove('hidden');
+            imagePreview.src = '#';
+            datePromptMessage.classList.add('hidden');
+            entryDateInput.value = formatDate(new Date());
+            appState.selectedImageFile = null;
+            appState.selectedImageDataURL = null;
+            appState.currentTags = [];
+            renderTagBar();
+            imageProcessingLoader.classList.add('hidden');
+            entryUploadLoader.classList.add('hidden');
+        }
+
+        function renderTagBar() {
+            const customInput = tagBar.querySelector('#custom-tag-input');
+            const customVal = customInput ? customInput.value : '';
+            tagBar.innerHTML = '';
+            
+            appState.currentTags.forEach(tag => tagBar.appendChild(createTagChipElement(tag, true)));
+            
+            const newCustomInput = document.createElement('input');
+            newCustomInput.type = 'text';
+            newCustomInput.id = 'custom-tag-input';
+            newCustomInput.placeholder = 'Add custom tag...';
+            newCustomInput.value = customVal;
+            tagBar.appendChild(newCustomInput);
+        }
+
+        function createTagChipElement(txt, selected) {
+            const el = document.createElement('span');
+            el.className = 'suggested-tag';
+            if (selected) el.classList.add('selected');
+            el.textContent = txt;
+            el.dataset.tag = txt;
+            el.onclick = () => {
+                if (appState.currentTags.includes(txt)) {
+                    appState.currentTags = appState.currentTags.filter(t => t !== txt);
+                } else {
+                    appState.currentTags.push(txt);
+                }
+                el.classList.toggle('selected');
+            };
+            return el;
+        }
+
+        function addSuggestedTagsToBar(tags) {
+            tags.forEach(t => {
+                if (!appState.currentTags.includes(t)) appState.currentTags.push(t);
+            });
+            renderTagBar();
+        }
+
+        function renderEntryDetailView(entry) {
+            detailImage.src = entry.image_url;
+            detailTitle.textContent = entry.title;
+            detailNotes.textContent = entry.notes || 'No notes.';
+            detailMetadata.textContent = `Date: ${formatDate(entry.date)}`;
+            detailTagsContainer.innerHTML = (entry.tags || []).map(t => `<span class="tag-chip">${t}</span>`).join('');
+            
+            const idx = appState.activeEntries.findIndex(e => e.id === appState.activeEntryId);
+            
+            document.getElementById('prev-entry-btn').disabled = idx === 0;
+            document.getElementById('next-entry-btn').disabled = idx === appState.activeEntries.length - 1;
+            
+            document.getElementById('prev-entry-btn').onclick = () => {
+                if (idx > 0) {
+                    appState.activeEntryId = appState.activeEntries[idx - 1].id;
+                    renderEntryDetailView(appState.activeEntries[idx - 1]);
+                }
+            };
+            
+            document.getElementById('next-entry-btn').onclick = () => {
+                if (idx < appState.activeEntries.length - 1) {
+                    appState.activeEntryId = appState.activeEntries[idx + 1].id;
+                    renderEntryDetailView(appState.activeEntries[idx + 1]);
+                }
+            };
+        }
+
+        // Event Handlers
+        loginForm.onsubmit = async (e) => {
+            e.preventDefault();
+            loginError.classList.add('hidden');
+            
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            
+            try {
+                const { data, error } = await supabaseClient.auth.signInWithPassword({
+                    email,
+                    password
+                });
+                
+                if (error) throw error;
+                await checkAuth();
+            } catch (error) {
+                loginError.textContent = error.message;
+                loginError.classList.remove('hidden');
+            }
+        };
+
+        signupForm.onsubmit = async (e) => {
+            e.preventDefault();
+            signupError.classList.add('hidden');
+            
+            const username = document.getElementById('username').value;
+            const phone = document.getElementById('phone').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                // Sign up user
+                const { data: authData, error: authError } = await supabaseClient.auth.signUp({
+                    email,
+                    password
+                });
+                
+                if (authError) throw authError;
+                
+                // Create profile
+                if (authData.user) {
+                    const { error: profileError } = await supabaseClient
+                        .from('profiles')
+                        .insert({
+                            id: authData.user.id,
+                            username,
+                            phone
+                        });
+                    
+                    if (profileError) {
+                        console.error('Profile creation error:', profileError);
+                    }
+                }
+                
+                await checkAuth();
+            } catch (error) {
+                signupError.textContent = error.message;
+                signupError.classList.remove('hidden');
+            }
+        };
+
+        document.getElementById('sign-out-btn').onclick = async () => {
+            if (confirm("Sign out?")) {
+                await supabaseClient.auth.signOut();
+                appState.currentUser = null;
+                appState.collections = [];
+                appState.activeCollectionId = null;
+                appState.activeEntryId = null;
+                navigateTo('login');
+            }
+        };
+
+        document.getElementById('new-collection-btn-home').onclick = () => {
+            document.getElementById('collection-name').value = '';
+            navigateTo('newCollectionModal');
+        };
+
+        document.getElementById('cancel-new-collection-btn').onclick = () => navigateTo('home');
+
+        newCollectionForm.onsubmit = async (e) => {
+            e.preventDefault();
+            
+            try {
+                const { data, error } = await supabaseClient
+                    .from('collections')
+                    .insert({
+                        name: document.getElementById('collection-name').value,
+                        user_id: appState.currentUser.id
+                    })
+                    .select()
+                    .single();
+                
+                if (error) throw error;
+                
+                await loadCollections();
+                renderHomeView();
+                navigateTo('home');
+            } catch (error) {
+                console.error('Error creating collection:', error);
+                alert('Error creating collection. Please try again.');
+            }
+        };
+
+        document.getElementById('back-to-home-btn').onclick = () => navigateTo('home');
+        
+        document.getElementById('add-entry-fab').onclick = () => {
+            renderNewEntryForm();
+            navigateTo('newEntry');
+        };
+        
+        document.getElementById('back-to-timeline-btn').onclick = () => {
+            if (appState.activeCollectionId) {
+                renderCollectionTimelineView();
+                navigateTo('collectionTimeline');
+            } else {
+                navigateTo('home');
+            }
+        };
+
+        imageUploadInput.onchange = e => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            appState.selectedImageFile = file;
+            imageUploadLabel.classList.add('hidden');
+            imagePreviewWrapper.classList.remove('hidden');
+            imageProcessingLoader.classList.remove('hidden');
+            
+            const reader = new FileReader();
+            reader.onload = evt => {
+                appState.selectedImageDataURL = evt.target.result;
+                imagePreview.src = appState.selectedImageDataURL;
+                
+                EXIF.getData(file, function() {
+                    let exifDateFound = false;
+                    const dto = EXIF.getTag(this, "DateTimeOriginal");
+                    if (dto) {
+                        try {
+                            const parts = dto.split(' ')[0].split(':');
+                            if (parts.length === 3 && !isNaN(new Date(`${parts[0]}-${parts[1]}-${parts[2]}`))) {
+                                entryDateInput.value = `${parts[0]}-${parts[1]}-${parts[2]}`;
+                                exifDateFound = true;
+                            }
+                        } catch (ex) {
+                            console.warn("EXIF parse error:", ex);
+                        }
+                    }
+                    datePromptMessage.classList.toggle('hidden', exifDateFound);
+                    if (!exifDateFound) entryDateInput.value = formatDate(new Date());
+                    
+                    if (appState.mobilenetModel) {
+                        predictTagsForImage(imagePreview).then(addSuggestedTagsToBar);
+                    } else {
+                        imageProcessingLoader.classList.add('hidden');
+                    }
+                });
+            };
+            reader.readAsDataURL(file);
+        };
+
+        document.getElementById('remove-image-btn').onclick = () => {
+            imagePreviewWrapper.classList.add('hidden');
+            imageUploadLabel.classList.remove('hidden');
+            imagePreview.src = '#';
+            imageUploadInput.value = null;
+            appState.selectedImageFile = null;
+            appState.selectedImageDataURL = null;
+            appState.currentTags = [];
+            renderTagBar();
+            imageProcessingLoader.classList.add('hidden');
+            datePromptMessage.classList.add('hidden');
+            entryDateInput.value = formatDate(new Date());
+        };
+
+        document.getElementById('add-custom-tag-btn').onclick = () => {
+            const input = document.getElementById('custom-tag-input');
+            const tag = input.value.trim();
+            if (tag && !appState.currentTags.includes(tag)) {
+                appState.currentTags.push(tag);
+                renderTagBar();
+            }
+            input.value = '';
+        };
+
+        tagBar.addEventListener('keypress', e => {
+            if (e.target.id === 'custom-tag-input' && e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('add-custom-tag-btn').click();
+            }
+        });
+
+        newEntryForm.onsubmit = async (e) => {
+            e.preventDefault();
+            if (!appState.selectedImageFile) {
+                alert("Please select an image.");
+                return;
+            }
+            
+            entryUploadLoader.classList.remove('hidden');
+            document.getElementById('create-entry-btn').disabled = true;
+            
+            try {
+                // Upload image
+                const imageUrl = await uploadImage(appState.selectedImageFile, appState.currentUser.id);
+                
+                // Create entry
+                const { data, error } = await supabaseClient
+                    .from('entries')
+                    .insert({
+                        collection_id: appState.activeCollectionId,
+                        title: document.getElementById('entry-title').value,
+                        notes: document.getElementById('entry-notes').value,
+                        date: entryDateInput.value,
+                        image_url: imageUrl,
+                        tags: appState.currentTags
+                    })
+                    .select()
+                    .single();
+                
+                if (error) throw error;
+                
+                await renderCollectionTimelineView();
+                navigateTo('collectionTimeline');
+            } catch (error) {
+                console.error('Error creating entry:', error);
+                alert('Error creating entry. Please try again.');
+            } finally {
+                entryUploadLoader.classList.add('hidden');
+                document.getElementById('create-entry-btn').disabled = false;
+            }
+        };
+
+        document.getElementById('back-to-timeline-from-detail-btn').onclick = () => {
+            if (appState.activeCollectionId) {
+                renderCollectionTimelineView();
+                navigateTo('collectionTimeline');
+            } else {
+                navigateTo('home');
+            }
+        };
+
+        document.getElementById('delete-collection-btn').onclick = async () => {
+            const col = appState.collections.find(c => c.id === appState.activeCollectionId);
+            if (!col || !confirm(`Delete collection "${col.name}" and all entries?`)) return;
+            
+            try {
+                const { error } = await supabaseClient
+                    .from('collections')
+                    .delete()
+                    .eq('id', appState.activeCollectionId);
+                
+                if (error) throw error;
+                
+                appState.activeCollectionId = null;
+                await loadCollections();
+                renderHomeView();
+                navigateTo('home');
+            } catch (error) {
+                console.error('Error deleting collection:', error);
+                alert('Error deleting collection.');
+            }
+        };
+
+        document.getElementById('delete-entry-btn').onclick = async () => {
+            if (!appState.activeEntryId || !confirm("Delete this entry?")) return;
+            
+            try {
+                const { error } = await supabaseClient
+                    .from('entries')
+                    .delete()
+                    .eq('id', appState.activeEntryId);
+                
+                if (error) throw error;
+                
+                appState.activeEntryId = null;
+                await renderCollectionTimelineView();
+                navigateTo('collectionTimeline');
+            } catch (error) {
+                console.error('Error deleting entry:', error);
+                alert('Error deleting entry.');
+            }
+        };
+
+        document.getElementById('switch-to-signup').onclick = () => navigateTo('signup');
+        document.getElementById('switch-to-login').onclick = () => navigateTo('login');
+
+        // Swipe navigation
+        let touchstartX = 0, touchendX = 0;
+        views.entryDetail.addEventListener('touchstart', e => {
+            touchstartX = e.changedTouches[0].screenX;
+        }, {passive: true});
+        
+        views.entryDetail.addEventListener('touchend', e => {
+            touchendX = e.changedTouches[0].screenX;
+            if (touchendX < touchstartX - 50) {
+                document.getElementById('next-entry-btn').click();
+            }
+            if (touchendX > touchstartX + 50) {
+                document.getElementById('prev-entry-btn').click();
+            }
+        }, {passive: true});
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadTFModel();
+            await checkAuth();
+        });
+    </script>
+</body>
+</html>
