@@ -362,9 +362,9 @@
             word-break: break-word; 
         }
         
-        .grid-entry-info .tag-chips {
+        /* .grid-entry-info .tag-chips {
             margin-top: auto; 
-        }
+        } */
         
         .tag-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 0px; } 
         .tag-chip {
@@ -1120,9 +1120,7 @@
                     <div class="grid-entry-info">
                         ${badgeHTML}
                         <h3 class="grid-entry-title">${entry.title}</h3>
-                        <div class="tag-chips">
-                            ${(entry.tags || []).map(t => `<span class="tag-chip">${t}</span>`).join('')}
-                        </div>
+                        <!-- Tags removed from grid view -->
                     </div>`;
                 tile.onclick = () => {
                     appState.activeEntryId = entry.id;
@@ -1358,9 +1356,7 @@
                     <div class="grid-entry-info">
                         ${badgeHTML}
                         <h3 class="grid-entry-title">${entry.title}</h3>
-                        <div class="tag-chips">
-                            ${(entry.tags || []).map(t => `<span class="tag-chip">${t}</span>`).join('')}
-                        </div>
+                        <!-- Tags removed from grid view -->
                     </div>`;
                 tile.onclick = async () => {
                     appState.activeEntryId = entry.id;
