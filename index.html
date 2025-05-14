@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Evoly</title>
     
-    <!-- Add Supabase -->
+    <!-- Add Google Cloud Vision API script -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
-    <!-- Existing scripts -->
+    <!-- Keep TensorFlow as fallback -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@latest/dist/mobilenet.min.js"></script>
@@ -444,6 +444,7 @@
         // Configuration - Replace these with your values
         const SUPABASE_URL = 'https://wgjxmpahcfhzgflcnlib.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndnanhtcGFoY2ZoemdmbGNubGliIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcyMzQzNjAsImV4cCI6MjA2MjgxMDM2MH0.6ji6OY6-g8IkdVvR6f9iZAN83qJunCN4EjnVey8_LJc';
+        const GOOGLE_CLOUD_VISION_API_KEY = 'AIzaSyDB9lq0UssbbXndJrwVL-TEaplkbPOmk4w'; // Add your Google Cloud Vision API key
         
         // Initialize Supabase
         const { createClient } = supabase;
