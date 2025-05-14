@@ -590,16 +590,27 @@
             const fileExt = file.name.split('.').pop();
             const fileName = `${userId}/${Date.now()}.${fileExt}`;
             
+            console.log('Uploading image:', fileName);
+            
             const { data, error } = await supabaseClient.storage
                 .from('entry-images')
-                .upload(fileName, file);
+                .upload(fileName, file, {
+                    contentType: file.type,
+                    upsert: false
+                });
 
-            if (error) throw error;
+            if (error) {
+                console.error('Upload error:', error);
+                throw error;
+            }
+
+            console.log('Upload successful:', data);
 
             const { data: { publicUrl } } = supabaseClient.storage
                 .from('entry-images')
                 .getPublicUrl(fileName);
 
+            console.log('Public URL:', publicUrl);
             return publicUrl;
         }
 
@@ -1028,34 +1039,47 @@
                 return;
             }
             
+            console.log('Starting entry creation with image:', appState.selectedImageFile.name);
+            
             entryUploadLoader.classList.remove('hidden');
             document.getElementById('create-entry-btn').disabled = true;
             
             try {
                 // Upload image
+                console.log('Uploading image for user:', appState.currentUser.id);
                 const imageUrl = await uploadImage(appState.selectedImageFile, appState.currentUser.id);
+                console.log('Image uploaded successfully:', imageUrl);
                 
                 // Create entry
+                const entryData = {
+                    collection_id: appState.activeCollectionId,
+                    title: document.getElementById('entry-title').value,
+                    notes: document.getElementById('entry-notes').value,
+                    date: entryDateInput.value,
+                    image_url: imageUrl,
+                    tags: appState.currentTags
+                };
+                
+                console.log('Creating entry with data:', entryData);
+                
                 const { data, error } = await supabaseClient
                     .from('entries')
-                    .insert({
-                        collection_id: appState.activeCollectionId,
-                        title: document.getElementById('entry-title').value,
-                        notes: document.getElementById('entry-notes').value,
-                        date: entryDateInput.value,
-                        image_url: imageUrl,
-                        tags: appState.currentTags
-                    })
+                    .insert(entryData)
                     .select()
                     .single();
                 
-                if (error) throw error;
+                if (error) {
+                    console.error('Entry creation error:', error);
+                    throw error;
+                }
+                
+                console.log('Entry created successfully:', data);
                 
                 await renderCollectionTimelineView();
                 navigateTo('collectionTimeline');
             } catch (error) {
-                console.error('Error creating entry:', error);
-                alert('Error creating entry. Please try again.');
+                console.error('Error in entry creation process:', error);
+                alert(`Error creating entry: ${error.message}`);
             } finally {
                 entryUploadLoader.classList.add('hidden');
                 document.getElementById('create-entry-btn').disabled = false;
