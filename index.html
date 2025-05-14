@@ -10,9 +10,22 @@
 
     <style>
         :root {
-            --primary-button-bg: #1A1A1A; 
+            /* Logo-Based Colors */
+            --logo-light-green: #a2ada3; 
+            --logo-light-green-darker: #8c9a8d; 
+            --logo-light-green-rgb: 162, 173, 163;
+
+            --logo-dark-slate: #3c4a54;   
+            --logo-dark-slate-lighter: #4c5a65; 
+
+            /* Theme Mapping */
+            --primary-accent: var(--logo-light-green);
+            --primary-accent-darker: var(--logo-light-green-darker);
+            --primary-accent-rgb: var(--logo-light-green-rgb);
+
+            --primary-button-bg: var(--logo-dark-slate); 
             --primary-button-text: #FFFFFF;
-            --primary-button-hover-bg: #333333;
+            --primary-button-hover-bg: var(--logo-dark-slate-lighter);
 
             --secondary-button-bg: #F0F0F0; 
             --secondary-button-text: #333333;
@@ -20,24 +33,20 @@
             --secondary-button-hover-bg: #E0E0E0;
 
             --background-main: #FFFFFF; 
-            --background-gradient-start: rgba(230, 220, 250, 0.25); 
-            --background-gradient-end: rgba(250, 225, 235, 0.25);   
+            --background-gradient-start: rgba(245, 247, 245, 0.5); 
+            --background-gradient-end: rgba(240, 242, 240, 0.3);   
             
             --card-bg: #FFFFFF;
             --card-border: #ECECEC;
 
-            --text-primary: #212529; 
-            --text-secondary: #6C757D; 
+            --text-primary: #2c3e50; 
+            --text-secondary: #7f8c8d; 
             
             --input-bg: #FFFFFF;
             --input-border: #CED4DA;
-            --input-focus-border: #A486D8; 
-            --input-focus-shadow-rgb: 164, 134, 216;
+            --input-focus-border: var(--primary-accent); 
+            --input-focus-shadow-rgb: var(--primary-accent-rgb);
 
-
-            --accent-color: #7F5AF0; 
-            --accent-color-darker: #6A48D0;
-            --accent-color-rgb: 127, 90, 240;
 
             --danger-color: #D93025;
             --danger-bg: #FCE8E6;
@@ -153,15 +162,14 @@
         .card {
             background-color: var(--card-bg);
             border-radius: var(--border-radius-main);
-            /* padding: 20px; */ /* Padding will be handled by grid-entry-info for grid items */
-            margin-bottom: 0; /* Grid gap will handle spacing */
+            margin-bottom: 0; 
             box-shadow: var(--box-shadow-main);
             transition: transform var(--transition-speed), box-shadow var(--transition-speed);
             border: 1px solid var(--card-border);
         }
-        .card.collection-card { /* For home page collection cards */
+        .card.collection-card { 
              cursor: pointer;
-             padding: 20px; /* Restore padding for non-grid cards */
+             padding: 20px; 
         }
         .card.collection-card:hover { 
             transform: translateY(-2px); 
@@ -182,9 +190,13 @@
             transform: scale(1.05);
         }
 
-        #login-view, #signup-view, #new-collection-modal-view {
+        #login-view, #signup-view { 
             display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;
         }
+        #new-collection-modal-view { 
+             display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;
+        }
+
         #login-view form, #signup-view form, #new-collection-modal-view form {
             width: 100%; max-width: 420px; 
             background-color: var(--card-bg);
@@ -193,47 +205,91 @@
             box-shadow: var(--box-shadow-main);
             border: 1px solid var(--card-border);
         }
-        #login-view h1, #signup-view h1 { 
-            text-align: center;
-            font-size: 2.5em;
-            color: var(--text-primary); 
-            margin-bottom: 10px;
+        
+        .auth-logo {
+            max-width: 220px; 
+            height: auto;
+            margin-bottom: 20px;
         }
-        #login-view p, #signup-view p {
+
+        #login-view p, #signup-view p { 
             text-align: center;
             color: var(--text-secondary);
             margin-bottom: 30px;
+            margin-top: 5px; 
         }
 
+        .header-app-icon {
+            width: 36px; 
+            height: 36px;
+            margin-right: 12px; 
+            flex-shrink: 0; 
+        }
 
-        #home-view header, #collection-timeline-view header, #tagged-entries-view header {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 25px; flex-wrap: wrap; 
+        /* General Header Styling */
+        .view > header {
+            display: flex;
+            align-items: flex-start; /* Align items to the top */
+            margin-bottom: 25px;
+            flex-wrap: wrap; 
         }
-        #home-view .header-actions, #collection-timeline-view .header-actions {
-            display: flex; gap: 12px; margin-left: auto; 
+        /* Specific for Home View Header */
+        #home-view > header {
+            justify-content: flex-start; 
         }
-         #home-view header h1, #collection-timeline-view header h2, #tagged-entries-view header h2 { 
-             margin-right: auto; 
-             font-weight: 600;
+         #home-view > header #greeting { 
+            margin-top: 0; 
+            line-height: 36px; /* Match icon height for better visual alignment */
+            margin-bottom: 0; /* Remove default h1 margin if in flex row */
         }
+        #home-view > header .header-actions {
+            margin-left: auto; 
+            align-self: center; 
+        }
+
+        /* Headers with Back Button */
+        #collection-timeline-view > header,
+        #new-entry-view > header,
+        #entry-detail-view > header,
+        #edit-entry-view > header,
+        #tagged-entries-view > header {
+            justify-content: flex-start; 
+        }
+
+        #collection-timeline-view > header h2,
+        #tagged-entries-view > header h2,
+        #new-entry-view > header h2,
+        #entry-detail-view > header h2, 
+        #edit-entry-view > header h2 {
+            margin-left: 15px; 
+            margin-right: 15px; 
+            flex-grow: 1; 
+            margin-top: 0; /* Align top of text with top of icon/button */
+            margin-bottom: 0; 
+            line-height: 36px; /* Match icon height */
+        }
+        #collection-timeline-view > header .header-actions {
+             margin-left: auto;
+             align-self: center; 
+        }
+
 
         /* Grid Container Styling */
         #entries-timeline-container,
         #tagged-entries-container {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); 
-            gap: 20px; 
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); 
+            gap: 15px; 
         }
         
         .collection-card h3 { margin-bottom: 8px; font-size: 1.3em;}
         .collection-card p { font-size: 0.9em; color: var(--text-secondary); margin: 0;}
 
         /* New Grid Entry Tile Styling */
-        .grid-entry-tile { /* This is also a .card */
+        .grid-entry-tile { 
             display: flex;
             flex-direction: column;
-            overflow: hidden; /* To contain rounded corners of image */
+            overflow: hidden; 
             cursor: pointer;
         }
 
@@ -244,8 +300,7 @@
 
         .grid-entry-image {
             width: 100%;
-            height: 180px; 
-            /* aspect-ratio: 4 / 3; */ /* Alternative for responsive height */
+            height: 160px; 
             object-fit: cover;
             display: block; 
         }
@@ -259,8 +314,7 @@
 
         .grid-entry-header {
             display: flex;
-            /* justify-content: space-between; */ /* Let title take space, badge aligns after */
-            align-items: flex-start; /* Align items to the top of their line */
+            align-items: flex-start; 
             margin-bottom: 8px;
             gap: 8px; 
         }
@@ -271,26 +325,24 @@
             margin: 0;
             color: var(--text-primary);
             line-height: 1.3;
-            flex-grow: 1; /* Allow title to take available space */
-            /* For potential multi-line titles before badge */
-            word-break: break-word; /* Or break-all if preferred */
+            flex-grow: 1; 
+            word-break: break-word; 
         }
 
         .grid-entry-info .days-since-badge { 
             font-size: 0.75em;
             padding: 3px 6px;
             white-space: nowrap; 
-            margin-top: 2px; /* Small adjustment for alignment */
+            margin-top: 2px; 
             flex-shrink: 0; 
-            margin-left: auto; /* Pushes badge to the right if title is short */
+            margin-left: auto; 
         }
         
         .grid-entry-info .tag-chips {
-            margin-top: 8px; /* Space between header and tags */
-            /* margin-top: auto; Pushes tags to the bottom if there's extra space - removed for now */
+            margin-top: 8px; 
         }
         
-        .tag-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 0px; } /* Removed bottom margin for grid */
+        .tag-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 0px; } 
         .tag-chip {
             background-color: var(--secondary-button-bg); 
             color: var(--secondary-button-text);
@@ -304,15 +356,15 @@
             transition: background-color var(--transition-speed), color var(--transition-speed), border-color var(--transition-speed);
         }
         .clickable-tag:hover {
-            background-color: var(--accent-color) !important; 
-            color: var(--primary-button-text) !important;
-            border-color: var(--accent-color) !important;
+            background-color: var(--primary-accent) !important; 
+            color: var(--primary-button-text) !important; 
+            border-color: var(--primary-accent) !important;
         }
         .days-since-badge { 
             font-size: 0.8em; 
-            color: var(--accent-color); 
+            color: var(--primary-accent); 
             font-weight: 500; 
-            background-color: rgba(var(--accent-color-rgb), 0.1);
+            background-color: rgba(var(--primary-accent-rgb), 0.15); 
             padding: 3px 6px;
             border-radius: var(--border-radius-small);
             display: inline-block;
@@ -329,11 +381,11 @@
             transition: border-color var(--transition-speed), background-color var(--transition-speed);
         }
         #new-entry-view #image-upload-label:hover { 
-            border-color: var(--accent-color); 
+            border-color: var(--primary-accent); 
             background-color: #FDFBFF; 
         }
         #new-entry-view #image-upload-label svg {
-            color: var(--accent-color); 
+            color: var(--primary-accent); 
             margin-bottom: 10px;
             width: 52px; height: 52px;
         }
@@ -383,9 +435,9 @@
             border-color: #C0C0C0;
         }
         .suggested-tag.selected { 
-            background-color: var(--accent-color); 
+            background-color: var(--primary-accent); 
             color: var(--primary-button-text); 
-            border-color: var(--accent-color);
+            border-color: var(--primary-accent-darker);
         }
         #custom-tag-input, #edit-custom-tag-input { 
             flex-grow: 1; 
@@ -444,7 +496,7 @@
         
         .loader {
             border: 4px solid var(--secondary-button-bg); 
-            border-top: 4px solid var(--accent-color); 
+            border-top: 4px solid var(--primary-accent); 
             border-radius: 50%; width: 30px; height: 30px;
             animation: spin 1s linear infinite; margin: 20px auto;
         }
@@ -457,17 +509,19 @@
         .back-button {
             background-color: var(--secondary-button-bg); 
             border: 1px solid var(--secondary-button-border); 
-            color: var(--accent-color); 
+            color: var(--primary-accent); 
             font-size: 0.9em; 
             cursor: pointer;
             padding: 8px 16px; 
-            margin-right: 15px;
+            margin-right: 0; /* Adjusted for icon spacing */
             font-weight: 500;
             border-radius: var(--border-radius-main); 
             transition: color var(--transition-speed), background-color var(--transition-speed), border-color var(--transition-speed);
             text-decoration: none; 
             display: inline-flex; 
             align-items: center;
+            height: 36px; /* Match icon height */
+            box-sizing: border-box;
         }
         .back-button:hover {
             background-color: var(--primary-button-hover-bg); 
@@ -488,7 +542,7 @@
         }
         
         .switch-link {
-            color: var(--accent-color); 
+            color: var(--primary-accent); 
             cursor: pointer;
             text-decoration: underline;
             margin-top: 20px;
@@ -497,7 +551,7 @@
             transition: color var(--transition-speed);
         }
         .switch-link:hover {
-            color: var(--accent-color-darker);
+            color: var(--primary-accent-darker);
         }
 
         #edit-entry-view #edit-image-preview {
@@ -517,7 +571,7 @@
         <!-- Login View -->
         <div id="login-view" class="view hidden">
             <form id="login-form">
-                <h1>Evoly</h1>
+                <img src="https://wgjxmpahcfhzgflcnlib.supabase.co/storage/v1/object/public/entry-images/Icon/evoly%20icon.png" alt="Evoly Logo" class="auth-logo">
                 <p>Track your journeys, one photo at a time.</p>
                 <div class="form-group">
                     <label for="login-email">Email</label>
@@ -536,7 +590,7 @@
         <!-- Signup View -->
         <div id="signup-view" class="view">
             <form id="signup-form">
-                <h1>Evoly</h1>
+                <img src="https://wgjxmpahcfhzgflcnlib.supabase.co/storage/v1/object/public/entry-images/Icon/evoly%20icon.png" alt="Evoly Logo" class="auth-logo">
                 <p>Track your journeys, one photo at a time.</p>
                 <div class="form-group">
                     <label for="username">Username</label>
@@ -563,6 +617,7 @@
         <!-- Home View -->
         <div id="home-view" class="view hidden">
             <header>
+                <img src="https://wgjxmpahcfhzgflcnlib.supabase.co/storage/v1/object/public/entry-images/Icon/evoly%20icon%20small.png" alt="Evoly Small Icon" class="header-app-icon">
                 <h1 id="greeting">Welcome!</h1>
                 <div class="header-actions">
                     <button id="new-collection-btn-home">New Collection</button>
@@ -578,6 +633,7 @@
         <!-- New Collection Modal/View -->
         <div id="new-collection-modal-view" class="view hidden">
             <form id="new-collection-form">
+                <!-- No small icon here, as it's a modal -->
                 <h2>New Collection</h2>
                 <div class="form-group">
                     <label for="collection-name">Collection Name</label>
@@ -591,13 +647,14 @@
         <!-- Collection Timeline View -->
         <div id="collection-timeline-view" class="view hidden">
             <header>
+                <img src="https://wgjxmpahcfhzgflcnlib.supabase.co/storage/v1/object/public/entry-images/Icon/evoly%20icon%20small.png" alt="Evoly Small Icon" class="header-app-icon">
                 <button class="back-button" id="back-to-home-btn">< Home</button>
                 <h2 id="collection-title-timeline">Collection Timeline</h2>
                 <div class="header-actions">
                     <button id="delete-collection-btn" class="danger">Delete Collection</button>
                 </div>
             </header>
-            <div id="entries-timeline-container"> <!-- This will be the grid container -->
+            <div id="entries-timeline-container"> 
             </div>
             <p id="no-entries-message" class="text-center my-2 hidden">No entries yet. Add your first one!</p>
             <div id="entries-loading" class="loader hidden"></div>
@@ -606,9 +663,10 @@
 
         <!-- New Entry View -->
         <div id="new-entry-view" class="view hidden">
-            <header style="margin-bottom: 20px; display:flex; align-items:center;">
+            <header>
+                 <img src="https://wgjxmpahcfhzgflcnlib.supabase.co/storage/v1/object/public/entry-images/Icon/evoly%20icon%20small.png" alt="Evoly Small Icon" class="header-app-icon">
                  <button class="back-button" id="back-to-timeline-btn">< Cancel</button>
-                 <h2 style="margin-bottom:0;">New Entry</h2>
+                 <h2 id="new-entry-title-header">New Entry</h2>
             </header>
             <form id="new-entry-form">
                 <input type="file" id="image-upload" accept="image/*" class="hidden">
@@ -655,7 +713,8 @@
 
         <!-- Entry Detail View -->
         <div id="entry-detail-view" class="view hidden">
-            <header style="margin-bottom: 0; display:flex; align-items:center;">
+            <header>
+                <img src="https://wgjxmpahcfhzgflcnlib.supabase.co/storage/v1/object/public/entry-images/Icon/evoly%20icon%20small.png" alt="Evoly Small Icon" class="header-app-icon">
                 <button class="back-button" id="back-to-timeline-from-detail-btn">< Back to Timeline</button>
             </header>
             <div id="detail-image-container">
@@ -677,9 +736,10 @@
         
         <!-- Edit Entry View -->
         <div id="edit-entry-view" class="view hidden">
-            <header style="margin-bottom: 20px; display:flex; align-items:center;">
+            <header>
+                <img src="https://wgjxmpahcfhzgflcnlib.supabase.co/storage/v1/object/public/entry-images/Icon/evoly%20icon%20small.png" alt="Evoly Small Icon" class="header-app-icon">
                 <button class="back-button" id="back-to-detail-btn">< Cancel</button>
-                <h2 style="margin-bottom:0;">Edit Entry</h2>
+                <h2 id="edit-entry-title-header">Edit Entry</h2>
             </header>
             <form id="edit-entry-form">
                 <div id="edit-image-preview-wrapper">
@@ -713,10 +773,11 @@
         <!-- Tagged Entries View -->
         <div id="tagged-entries-view" class="view hidden">
             <header>
+                <img src="https://wgjxmpahcfhzgflcnlib.supabase.co/storage/v1/object/public/entry-images/Icon/evoly%20icon%20small.png" alt="Evoly Small Icon" class="header-app-icon">
                 <button class="back-button" id="back-from-tagged-view-btn">< Back</button>
                 <h2 id="tagged-entries-title">Entries Tagged: ...</h2>
             </header>
-            <div id="tagged-entries-container"> <!-- This will be the grid container -->
+            <div id="tagged-entries-container"> 
             </div>
             <p id="no-tagged-entries-message" class="text-center my-2 hidden">No entries found with this tag.</p>
             <div id="tagged-entries-loading" class="loader hidden"></div>
@@ -1009,7 +1070,7 @@
             
             appState.activeEntries.forEach((entry, idx) => {
                 const tile = document.createElement('div');
-                tile.className = 'card grid-entry-tile'; // Use new class
+                tile.className = 'card grid-entry-tile'; 
                 tile.dataset.id = entry.id;
                 
                 let badgeHTML = '';
@@ -1249,7 +1310,7 @@
 
             entries.forEach((entry, idx) => { 
                 const tile = document.createElement('div');
-                tile.className = 'card grid-entry-tile'; // Use new class
+                tile.className = 'card grid-entry-tile'; 
                 tile.dataset.id = entry.id;
                 
                 let badgeHTML = '';
@@ -1318,7 +1379,7 @@
                     else { 
                         signupError.textContent = 'Account created! Please check your email to confirm and then log in.';
                         signupError.classList.remove('hidden');
-                        signupError.style.color = 'var(--accent-color)'; 
+                        signupError.style.color = 'var(--primary-accent)'; 
                         setTimeout(() => navigateTo('login'), 4000);
                     }
                 }
