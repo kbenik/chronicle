@@ -1067,11 +1067,8 @@
                         datePromptMessage.classList.add('hidden');
                     }
                     
-                    if (appState.mobilenetModel) {
-                        predictTagsForImage(imagePreview).then(addSuggestedTagsToBar);
-                    } else {
-                        imageProcessingLoader.classList.add('hidden');
-                    }
+                    // Always try to predict tags regardless of model availability
+                    predictTagsForImage(imagePreview).then(addSuggestedTagsToBar);
                 });
             };
             reader.readAsDataURL(file);
