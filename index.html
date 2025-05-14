@@ -396,10 +396,46 @@
                 <p id="detail-metadata">Date: YYYY-MM-DD</p>
                 <div class="detail-nav">
                     <button id="prev-entry-btn" class="secondary">Previous</button>
+                    <button id="edit-entry-btn">Edit</button>
                     <button id="next-entry-btn" class="secondary">Next</button>
                 </div>
                 <button id="delete-entry-btn" class="danger">Delete This Entry</button>
             </div>
+        </div>
+        
+        <!-- Edit Entry View -->
+        <div id="edit-entry-view" class="view hidden">
+            <header style="margin-bottom: 20px;">
+                <button class="back-button" id="back-to-detail-btn">&lt; Cancel</button>
+                <h2>Edit Entry</h2>
+            </header>
+            <form id="edit-entry-form">
+                <div id="edit-image-preview-wrapper">
+                    <img id="edit-image-preview" alt="Entry image" style="max-width: 100%; max-height: 300px; border-radius: var(--border-radius); margin-bottom: 15px;">
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-entry-date">Date</label>
+                    <input type="date" id="edit-entry-date" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-entry-title">Title</label>
+                    <input type="text" id="edit-entry-title" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-entry-notes">Notes/Observations</label>
+                    <textarea id="edit-entry-notes"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Tags (click to toggle, or type your own)</label>
+                    <div id="edit-tag-bar">
+                        <input type="text" id="edit-custom-tag-input" placeholder="Add custom tag...">
+                    </div>
+                    <button type="button" id="edit-add-custom-tag-btn" class="secondary" style="margin-top:5px; font-size:0.9em;">Add Tag</button>
+                </div>
+                <button type="submit" id="save-entry-btn">Save Changes</button>
+                <div id="edit-upload-loader" class="loader hidden"></div>
+            </form>
         </div>
     </div>
 
@@ -435,6 +471,7 @@
             collectionTimeline: document.getElementById('collection-timeline-view'),
             newEntry: document.getElementById('new-entry-view'),
             entryDetail: document.getElementById('entry-detail-view'),
+            editEntry: document.getElementById('edit-entry-view'),
         };
 
         // Form Elements
@@ -442,6 +479,7 @@
         const signupForm = document.getElementById('signup-form');
         const newCollectionForm = document.getElementById('new-collection-form');
         const newEntryForm = document.getElementById('new-entry-form');
+        const editEntryForm = document.getElementById('edit-entry-form');
         
         // Get all other elements
         const greetingEl = document.getElementById('greeting');
@@ -606,12 +644,40 @@
 
             console.log('Upload successful:', data);
 
+            // Get public URL if bucket is public, or signed URL if private
+            let imageUrl;
+            
+            // First try to get public URL
             const { data: { publicUrl } } = supabaseClient.storage
                 .from('entry-images')
                 .getPublicUrl(fileName);
+            
+            // Test if the public URL works
+            try {
+                const response = await fetch(publicUrl, { method: 'HEAD' });
+                if (response.ok) {
+                    imageUrl = publicUrl;
+                } else {
+                    // If public URL doesn't work, get a signed URL
+                    const { data: signedData, error: signedError } = await supabaseClient.storage
+                        .from('entry-images')
+                        .createSignedUrl(fileName, 60 * 60 * 24 * 365); // 1 year
+                    
+                    if (signedError) throw signedError;
+                    imageUrl = signedData.signedUrl;
+                }
+            } catch (e) {
+                // If fetch fails, assume we need a signed URL
+                const { data: signedData, error: signedError } = await supabaseClient.storage
+                    .from('entry-images')
+                    .createSignedUrl(fileName, 60 * 60 * 24 * 365); // 1 year
+                
+                if (signedError) throw signedError;
+                imageUrl = signedData.signedUrl;
+            }
 
-            console.log('Public URL:', publicUrl);
-            return publicUrl;
+            console.log('Image URL:', imageUrl);
+            return imageUrl;
         }
 
         // TensorFlow Model
@@ -732,7 +798,7 @@
             imageUploadLabel.classList.remove('hidden');
             imagePreview.src = '#';
             datePromptMessage.classList.add('hidden');
-            entryDateInput.value = formatDate(new Date());
+            entryDateInput.value = ''; // Start with blank date
             appState.selectedImageFile = null;
             appState.selectedImageDataURL = null;
             appState.currentTags = [];
@@ -988,8 +1054,15 @@
                             console.warn("EXIF parse error:", ex);
                         }
                     }
-                    datePromptMessage.classList.toggle('hidden', exifDateFound);
-                    if (!exifDateFound) entryDateInput.value = formatDate(new Date());
+                    
+                    // If no EXIF date found, leave the field blank
+                    if (!exifDateFound) {
+                        entryDateInput.value = '';
+                        datePromptMessage.textContent = 'No date found in image. Please enter date manually.';
+                        datePromptMessage.classList.remove('hidden');
+                    } else {
+                        datePromptMessage.classList.add('hidden');
+                    }
                     
                     if (appState.mobilenetModel) {
                         predictTagsForImage(imagePreview).then(addSuggestedTagsToBar);
@@ -1012,7 +1085,7 @@
             renderTagBar();
             imageProcessingLoader.classList.add('hidden');
             datePromptMessage.classList.add('hidden');
-            entryDateInput.value = formatDate(new Date());
+            entryDateInput.value = ''; // Clear the date field
         };
 
         document.getElementById('add-custom-tag-btn').onclick = () => {
@@ -1139,6 +1212,115 @@
 
         document.getElementById('switch-to-signup').onclick = () => navigateTo('signup');
         document.getElementById('switch-to-login').onclick = () => navigateTo('login');
+
+        document.getElementById('edit-entry-btn').onclick = () => {
+            const entry = appState.activeEntries.find(e => e.id === appState.activeEntryId);
+            if (entry) {
+                renderEditEntryForm(entry);
+                navigateTo('editEntry');
+            }
+        };
+
+        document.getElementById('back-to-detail-btn').onclick = () => {
+            const entry = appState.activeEntries.find(e => e.id === appState.activeEntryId);
+            if (entry) {
+                renderEntryDetailView(entry);
+                navigateTo('entryDetail');
+            }
+        };
+
+        // Edit form tag functionality
+        const editTagBar = document.getElementById('edit-tag-bar');
+        document.getElementById('edit-add-custom-tag-btn').onclick = () => {
+            const input = document.getElementById('edit-custom-tag-input');
+            const tag = input.value.trim();
+            if (tag && !appState.currentTags.includes(tag)) {
+                appState.currentTags.push(tag);
+                renderEditTagBar();
+            }
+            input.value = '';
+        };
+
+        editTagBar.addEventListener('keypress', e => {
+            if (e.target.id === 'edit-custom-tag-input' && e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('edit-add-custom-tag-btn').click();
+            }
+        });
+
+        editEntryForm.onsubmit = async (e) => {
+            e.preventDefault();
+            
+            const editLoader = document.getElementById('edit-upload-loader');
+            const saveBtn = document.getElementById('save-entry-btn');
+            
+            editLoader.classList.remove('hidden');
+            saveBtn.disabled = true;
+            
+            try {
+                const { data, error } = await supabaseClient
+                    .from('entries')
+                    .update({
+                        title: document.getElementById('edit-entry-title').value,
+                        notes: document.getElementById('edit-entry-notes').value,
+                        date: document.getElementById('edit-entry-date').value,
+                        tags: appState.currentTags
+                    })
+                    .eq('id', appState.activeEntryId);
+                
+                if (error) throw error;
+                
+                // Refresh the entries
+                appState.activeEntries = await loadEntries(appState.activeCollectionId);
+                const updatedEntry = appState.activeEntries.find(e => e.id === appState.activeEntryId);
+                
+                if (updatedEntry) {
+                    renderEntryDetailView(updatedEntry);
+                    navigateTo('entryDetail');
+                }
+            } catch (error) {
+                console.error('Error updating entry:', error);
+                alert('Error updating entry. Please try again.');
+            } finally {
+                editLoader.classList.add('hidden');
+                saveBtn.disabled = false;
+            }
+        };
+
+        // Helper functions for edit view
+        function renderEditEntryForm(entry) {
+            document.getElementById('edit-image-preview').src = entry.image_url;
+            document.getElementById('edit-entry-date').value = entry.date;
+            document.getElementById('edit-entry-title').value = entry.title;
+            document.getElementById('edit-entry-notes').value = entry.notes || '';
+            appState.currentTags = [...(entry.tags || [])];
+            renderEditTagBar();
+        }
+
+        function renderEditTagBar() {
+            const editTagBar = document.getElementById('edit-tag-bar');
+            const customInput = editTagBar.querySelector('#edit-custom-tag-input');
+            const customVal = customInput ? customInput.value : '';
+            editTagBar.innerHTML = '';
+            
+            appState.currentTags.forEach(tag => {
+                const el = document.createElement('span');
+                el.className = 'suggested-tag selected';
+                el.textContent = tag;
+                el.onclick = () => {
+                    appState.currentTags = appState.currentTags.filter(t => t !== tag);
+                    renderEditTagBar();
+                };
+                editTagBar.appendChild(el);
+            });
+            
+            const newCustomInput = document.createElement('input');
+            newCustomInput.type = 'text';
+            newCustomInput.id = 'edit-custom-tag-input';
+            newCustomInput.placeholder = 'Add custom tag...';
+            newCustomInput.value = customVal;
+            editTagBar.appendChild(newCustomInput);
+        }
 
         // Swipe navigation
         let touchstartX = 0, touchendX = 0;
