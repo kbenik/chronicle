@@ -10,32 +10,32 @@
 
     <style>
         :root {
-            --primary-button-bg: #1A1A1A; /* Near Black for buttons */
+            --primary-button-bg: #1A1A1A; 
             --primary-button-text: #FFFFFF;
             --primary-button-hover-bg: #333333;
 
-            --secondary-button-bg: #F0F0F0; /* Light gray */
+            --secondary-button-bg: #F0F0F0; 
             --secondary-button-text: #333333;
             --secondary-button-border: #DCDCDC;
             --secondary-button-hover-bg: #E0E0E0;
 
             --background-main: #FFFFFF; 
-            --background-gradient-start: rgba(230, 220, 250, 0.25); /* Subtle purple */
-            --background-gradient-end: rgba(250, 225, 235, 0.25);   /* Subtle pink */
+            --background-gradient-start: rgba(230, 220, 250, 0.25); 
+            --background-gradient-end: rgba(250, 225, 235, 0.25);   
             
             --card-bg: #FFFFFF;
             --card-border: #ECECEC;
 
-            --text-primary: #212529; /* Dark gray for text */
-            --text-secondary: #6C757D; /* Medium gray */
+            --text-primary: #212529; 
+            --text-secondary: #6C757D; 
             
             --input-bg: #FFFFFF;
             --input-border: #CED4DA;
-            --input-focus-border: #A486D8; /* Purple accent for focus */
+            --input-focus-border: #A486D8; 
             --input-focus-shadow-rgb: 164, 134, 216;
 
 
-            --accent-color: #7F5AF0; /* A clearer purple accent for links, selected tags */
+            --accent-color: #7F5AF0; 
             --accent-color-darker: #6A48D0;
             --accent-color-rgb: 127, 90, 240;
 
@@ -43,7 +43,7 @@
             --danger-bg: #FCE8E6;
             --danger-border: #F6C8C4;
 
-            --border-radius-main: 10px; /* Slightly more rounded like screenshot */
+            --border-radius-main: 10px; 
             --border-radius-small: 6px;
             --box-shadow-main: 0 4px 12px rgba(0,0,0,0.06);
             --box-shadow-light: 0 2px 6px rgba(0,0,0,0.04);
@@ -67,7 +67,7 @@
         }
 
         .view {
-            padding: 25px; /* Increased padding */
+            padding: 25px; 
             min-height: calc(100vh - 50px); 
             box-sizing: border-box;
         }
@@ -86,7 +86,7 @@
             background-color: var(--primary-button-bg);
             color: var(--primary-button-text);
             border: none;
-            padding: 12px 22px; /* Adjusted padding */
+            padding: 12px 22px; 
             border-radius: var(--border-radius-main);
             cursor: pointer;
             font-size: 1em;
@@ -118,7 +118,7 @@
             box-shadow: 0 2px 4px rgba(var(--danger-color), 0.2);
         }
         button.danger:hover {
-            background-color: #C0271B; /* Darker red */
+            background-color: #C0271B; 
         }
 
         input[type="text"], input[type="email"], input[type="tel"], input[type="password"], input[type="date"], textarea {
@@ -126,7 +126,7 @@
             padding: 12px;
             margin-bottom: 15px;
             border: 1px solid var(--input-border);
-            border-radius: var(--border-radius-small); /* Inputs slightly less rounded */
+            border-radius: var(--border-radius-small); 
             font-size: 1em;
             box-sizing: border-box;
             background-color: var(--input-bg);
@@ -153,16 +153,17 @@
         .card {
             background-color: var(--card-bg);
             border-radius: var(--border-radius-main);
-            padding: 20px;
-            margin-bottom: 20px;
+            /* padding: 20px; */ /* Padding will be handled by grid-entry-info for grid items */
+            margin-bottom: 0; /* Grid gap will handle spacing */
             box-shadow: var(--box-shadow-main);
             transition: transform var(--transition-speed), box-shadow var(--transition-speed);
             border: 1px solid var(--card-border);
         }
-        .card.collection-card, .card.entry-tile { 
+        .card.collection-card { /* For home page collection cards */
              cursor: pointer;
+             padding: 20px; /* Restore padding for non-grid cards */
         }
-        .card.collection-card:hover, .card.entry-tile:hover { 
+        .card.collection-card:hover { 
             transform: translateY(-2px); 
             box-shadow: 0 6px 16px rgba(0,0,0,0.08);
         }
@@ -217,42 +218,79 @@
              font-weight: 600;
         }
 
-        #home-view #collections-container, 
-        #collection-timeline-view #entries-timeline-container,
-        #tagged-entries-view #tagged-entries-container {
-            display: flex; flex-direction: column; gap: 18px;
+        /* Grid Container Styling */
+        #entries-timeline-container,
+        #tagged-entries-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); 
+            gap: 20px; 
         }
         
         .collection-card h3 { margin-bottom: 8px; font-size: 1.3em;}
         .collection-card p { font-size: 0.9em; color: var(--text-secondary); margin: 0;}
 
+        /* New Grid Entry Tile Styling */
+        .grid-entry-tile { /* This is also a .card */
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* To contain rounded corners of image */
+            cursor: pointer;
+        }
 
-        .entry-tile { 
-            padding: 15px; 
-            display: flex; 
-            gap: 15px; 
-            align-items: flex-start; 
-            border-left: 4px solid var(--accent-color); 
+        .grid-entry-tile:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 18px rgba(0,0,0,0.1);
         }
-        .entry-tile-thumbnail {
-            width: 80px; height: 80px; 
+
+        .grid-entry-image {
+            width: 100%;
+            height: 180px; 
+            /* aspect-ratio: 4 / 3; */ /* Alternative for responsive height */
             object-fit: cover;
-            border-radius: var(--border-radius-small); 
-            flex-shrink: 0;
-            border: 1px solid var(--card-border);
+            display: block; 
         }
-        .entry-tile-content { flex-grow: 1; min-width: 0; }
-        .entry-tile-content h3 {
-            margin: 0 0 5px 0; font-size: 1.15em;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-            font-weight: 500;
+
+        .grid-entry-info {
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1; 
         }
-        .entry-tile-notes-snippet {
-            font-size: 0.9em; color: var(--text-secondary); margin-bottom: 8px;
-            max-height: 3.6em; overflow: hidden; text-overflow: ellipsis;
-            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+
+        .grid-entry-header {
+            display: flex;
+            /* justify-content: space-between; */ /* Let title take space, badge aligns after */
+            align-items: flex-start; /* Align items to the top of their line */
+            margin-bottom: 8px;
+            gap: 8px; 
         }
-        .tag-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+
+        .grid-entry-title {
+            font-size: 1.05em; 
+            font-weight: 600;
+            margin: 0;
+            color: var(--text-primary);
+            line-height: 1.3;
+            flex-grow: 1; /* Allow title to take available space */
+            /* For potential multi-line titles before badge */
+            word-break: break-word; /* Or break-all if preferred */
+        }
+
+        .grid-entry-info .days-since-badge { 
+            font-size: 0.75em;
+            padding: 3px 6px;
+            white-space: nowrap; 
+            margin-top: 2px; /* Small adjustment for alignment */
+            flex-shrink: 0; 
+            margin-left: auto; /* Pushes badge to the right if title is short */
+        }
+        
+        .grid-entry-info .tag-chips {
+            margin-top: 8px; /* Space between header and tags */
+            /* margin-top: auto; Pushes tags to the bottom if there's extra space - removed for now */
+        }
+        
+        .tag-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 0px; } /* Removed bottom margin for grid */
         .tag-chip {
             background-color: var(--secondary-button-bg); 
             color: var(--secondary-button-text);
@@ -559,7 +597,7 @@
                     <button id="delete-collection-btn" class="danger">Delete Collection</button>
                 </div>
             </header>
-            <div id="entries-timeline-container">
+            <div id="entries-timeline-container"> <!-- This will be the grid container -->
             </div>
             <p id="no-entries-message" class="text-center my-2 hidden">No entries yet. Add your first one!</p>
             <div id="entries-loading" class="loader hidden"></div>
@@ -678,8 +716,7 @@
                 <button class="back-button" id="back-from-tagged-view-btn">< Back</button>
                 <h2 id="tagged-entries-title">Entries Tagged: ...</h2>
             </header>
-            <div id="tagged-entries-container">
-                <!-- Entry tiles will be rendered here -->
+            <div id="tagged-entries-container"> <!-- This will be the grid container -->
             </div>
             <p id="no-tagged-entries-message" class="text-center my-2 hidden">No entries found with this tag.</p>
             <div id="tagged-entries-loading" class="loader hidden"></div>
@@ -688,9 +725,10 @@
     </div>
 
     <script>
+        // Configuration - Replace these with your values
         const SUPABASE_URL = 'https://wgjxmpahcfhzgflcnlib.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndnanhtcGFoY2ZoemdmbGNubGliIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcyMzQzNjAsImV4cCI6MjA2MjgxMDM2MH0.6ji6OY6-g8IkdVvR6f9iZAN83qJunCN4EjnVey8_LJc';
-        const GOOGLE_CLOUD_VISION_API_KEY = 'AIzaSyDB9lq0UssbbXndJrwVL-TEaplkbPOmk4w';
+        const GOOGLE_CLOUD_VISION_API_KEY = 'AIzaSyDB9lq0UssbbXndJrwVL-TEaplkbPOmk4w'; // Your actual key
         
         // Initialize Supabase
         const { createClient } = supabase;
@@ -706,8 +744,8 @@
             activeEntries: [], 
             selectedImageFile: null,
             selectedImageDataURL: null,
-            currentTags: [],      // For new/edit form: currently selected tags by user
-            aiSuggestedTags: [],  // For new/edit form: AI suggestions not yet selected
+            currentTags: [],      
+            aiSuggestedTags: [],  
             currentTagName: null, 
             taggedEntries: [],    
             viewBeforeTagSearch: null, 
@@ -751,8 +789,8 @@
         const imageProcessingLoader = document.getElementById('image-processing-loader');
         const entryDateInput = document.getElementById('entry-date');
         const datePromptMessage = document.getElementById('date-prompt-message');
-        const tagBar = document.getElementById('tag-bar'); // For new entry
-        const editTagBarEl = document.getElementById('edit-tag-bar'); // For edit entry
+        const tagBar = document.getElementById('tag-bar'); 
+        const editTagBarEl = document.getElementById('edit-tag-bar'); 
         const entryUploadLoader = document.getElementById('entry-upload-loader');
         const detailImage = document.getElementById('detail-image');
         const detailTitle = document.getElementById('detail-title');
@@ -788,7 +826,6 @@
             const d1 = new Date(d1Str);
             const d2 = new Date(d2Str);
             if (isNaN(d1) || isNaN(d2)) return null;
-            // Ensure d1 is the later date for positive difference if d1 > d2
             const laterDate = Math.max(d1.getTime(), d2.getTime());
             const earlierDate = Math.min(d1.getTime(), d2.getTime());
             return Math.ceil((laterDate - earlierDate) / (1000 * 60 * 60 * 24));
@@ -972,7 +1009,7 @@
             
             appState.activeEntries.forEach((entry, idx) => {
                 const tile = document.createElement('div');
-                tile.className = 'card entry-tile';
+                tile.className = 'card grid-entry-tile'; // Use new class
                 tile.dataset.id = entry.id;
                 
                 let badgeHTML = '';
@@ -990,14 +1027,16 @@
                     }
                 }
                 
-                const notesSnip = entry.notes ? (entry.notes.length > 100 ? entry.notes.substring(0, 100) + '...' : entry.notes) : '';
                 tile.innerHTML = `
-                    <img src="${entry.image_url}" alt="${entry.title}" class="entry-tile-thumbnail">
-                    <div class="entry-tile-content">
-                        <h3>${entry.title}</h3>
-                        <p class="entry-tile-notes-snippet">${notesSnip || 'No notes.'}</p>
-                        <div class="tag-chips">${(entry.tags || []).map(t => `<span class="tag-chip">${t}</span>`).join('')}</div>
-                        ${badgeHTML} 
+                    <img src="${entry.image_url}" alt="${entry.title}" class="grid-entry-image">
+                    <div class="grid-entry-info">
+                        <div class="grid-entry-header">
+                            <h3 class="grid-entry-title">${entry.title}</h3>
+                            ${badgeHTML}
+                        </div>
+                        <div class="tag-chips">
+                            ${(entry.tags || []).map(t => `<span class="tag-chip">${t}</span>`).join('')}
+                        </div>
                     </div>`;
                 tile.onclick = () => {
                     appState.activeEntryId = entry.id;
@@ -1210,7 +1249,7 @@
 
             entries.forEach((entry, idx) => { 
                 const tile = document.createElement('div');
-                tile.className = 'card entry-tile';
+                tile.className = 'card grid-entry-tile'; // Use new class
                 tile.dataset.id = entry.id;
                 
                 let badgeHTML = '';
@@ -1228,18 +1267,17 @@
                     }
                 }
                 
-                const notesSnip = entry.notes ? (entry.notes.length > 100 ? entry.notes.substring(0, 100) + '...' : entry.notes) : '';
                 tile.innerHTML = `
-                    <img src="${entry.image_url}" alt="${entry.title}" class="entry-tile-thumbnail">
-                    <div class="entry-tile-content">
-                        <h3>${entry.title}</h3>
-                        <p class="entry-tile-notes-snippet">${notesSnip || 'No notes.'}</p>
+                    <img src="${entry.image_url}" alt="${entry.title}" class="grid-entry-image">
+                    <div class="grid-entry-info">
+                        <div class="grid-entry-header">
+                            <h3 class="grid-entry-title">${entry.title}</h3>
+                            ${badgeHTML}
+                        </div>
                         <div class="tag-chips">
                             ${(entry.tags || []).map(t => `<span class="tag-chip">${t}</span>`).join('')}
                         </div>
-                        ${badgeHTML}
-                    </div>
-                `;
+                    </div>`;
                 tile.onclick = async () => {
                     appState.activeEntryId = entry.id;
                     appState.activeCollectionId = entry.collection_id; 
