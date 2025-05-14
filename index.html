@@ -836,25 +836,58 @@
                 
                 if (authError) throw authError;
                 
-                // Create profile
+                // If signup successful, check if we need email confirmation
                 if (authData.user) {
-                    const { error: profileError } = await supabaseClient
-                        .from('profiles')
-                        .insert({
-                            id: authData.user.id,
-                            username,
-                            phone
+                    // Check if email confirmation is required
+                    if (authData.user.email_confirmed_at === null && authData.user.identities?.length === 0) {
+                        // Email confirmation required
+                        signupError.textContent = 'Please check your email to confirm your account.';
+                        signupError.classList.remove('hidden');
+                        signupError.style.color = 'green';
+                        
+                        // Wait a moment then redirect to login
+                        setTimeout(() => {
+                            navigateTo('login');
+                        }, 3000);
+                    } else {
+                        // No email confirmation needed or already confirmed
+                        // Create profile
+                        const { error: profileError } = await supabaseClient
+                            .from('profiles')
+                            .insert({
+                                id: authData.user.id,
+                                username,
+                                phone
+                            });
+                        
+                        if (profileError) {
+                            console.error('Profile creation error:', profileError);
+                        }
+                        
+                        // Sign in the user automatically
+                        const { error: signInError } = await supabaseClient.auth.signInWithPassword({
+                            email,
+                            password
                         });
-                    
-                    if (profileError) {
-                        console.error('Profile creation error:', profileError);
+                        
+                        if (!signInError) {
+                            await checkAuth();
+                        } else {
+                            // If auto sign-in fails, redirect to login
+                            signupError.textContent = 'Account created successfully! Please log in.';
+                            signupError.classList.remove('hidden');
+                            signupError.style.color = 'green';
+                            
+                            setTimeout(() => {
+                                navigateTo('login');
+                            }, 2000);
+                        }
                     }
                 }
-                
-                await checkAuth();
             } catch (error) {
                 signupError.textContent = error.message;
                 signupError.classList.remove('hidden');
+                signupError.style.color = 'var(--danger-color)';
             }
         };
 
