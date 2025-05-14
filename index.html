@@ -306,7 +306,7 @@
         #tagged-entries-container {
             display: grid;
             gap: 15px; 
-            grid-template-columns: repeat(2, 1fr); /* Default to 2 columns */
+            grid-template-columns: repeat(2, 1fr); 
         }
 
         @media (min-width: 480px) { 
@@ -340,40 +340,30 @@
         }
 
         .grid-entry-info {
-            padding: 12px;
+            padding: 10px;
             display: flex;
             flex-direction: column;
             flex-grow: 1; 
         }
-
-        .grid-entry-header {
-            display: flex;
-            align-items: flex-start; 
-            margin-bottom: 8px;
-            gap: 8px; 
+        
+        .grid-entry-info .days-since-badge { 
+            font-size: 0.7em; 
+            padding: 2px 5px; 
+            margin-bottom: 6px; 
+            align-self: flex-start; 
         }
 
-        .grid-entry-title {
+        .grid-entry-title { 
             font-size: 1.05em; 
             font-weight: 600;
-            margin: 0;
+            margin: 0 0 8px 0; 
             color: var(--text-primary);
             line-height: 1.3;
-            flex-grow: 1; 
             word-break: break-word; 
-        }
-
-        .grid-entry-info .days-since-badge { 
-            font-size: 0.75em;
-            padding: 3px 6px;
-            white-space: nowrap; 
-            margin-top: 2px; 
-            flex-shrink: 0; 
-            margin-left: auto; 
         }
         
         .grid-entry-info .tag-chips {
-            margin-top: 8px; 
+            margin-top: auto; 
         }
         
         .tag-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 0px; } 
@@ -1128,10 +1118,8 @@
                 tile.innerHTML = `
                     <img src="${entry.image_url}" alt="${entry.title}" class="grid-entry-image">
                     <div class="grid-entry-info">
-                        <div class="grid-entry-header">
-                            <h3 class="grid-entry-title">${entry.title}</h3>
-                            ${badgeHTML}
-                        </div>
+                        ${badgeHTML}
+                        <h3 class="grid-entry-title">${entry.title}</h3>
                         <div class="tag-chips">
                             ${(entry.tags || []).map(t => `<span class="tag-chip">${t}</span>`).join('')}
                         </div>
@@ -1368,10 +1356,8 @@
                 tile.innerHTML = `
                     <img src="${entry.image_url}" alt="${entry.title}" class="grid-entry-image">
                     <div class="grid-entry-info">
-                        <div class="grid-entry-header">
-                            <h3 class="grid-entry-title">${entry.title}</h3>
-                            ${badgeHTML}
-                        </div>
+                        ${badgeHTML}
+                        <h3 class="grid-entry-title">${entry.title}</h3>
                         <div class="tag-chips">
                             ${(entry.tags || []).map(t => `<span class="tag-chip">${t}</span>`).join('')}
                         </div>
