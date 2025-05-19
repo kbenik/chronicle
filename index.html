@@ -1014,7 +1014,20 @@
             currentDetailImageIndex: 0,
         };
 
-        const views = { /* ... same as before ... */ };
+        // const views = { /* ... same as before ... */ }; // OLD LINE
+        // CORRECTED INITIALIZATION FOR THE 'views' OBJECT:
+        const views = {
+            login: null,
+            signup: null,
+            home: null,
+            newCollectionModal: null,
+            collectionTimeline: null,
+            newEntry: null,
+            entryDetail: null,
+            editEntry: null,
+            taggedEntries: null
+        };
+        
         // (Initialize all view consts as before)
         const loginForm = document.getElementById('login-form');
         const signupForm = document.getElementById('signup-form');
@@ -1058,9 +1071,17 @@
         const lightboxZoomInBtn = document.getElementById('lightbox-zoom-in');
         const lightboxZoomOutBtn = document.getElementById('lightbox-zoom-out');
         
-        Object.keys(views).forEach(id => { // Initialize views object from DOM
-            views[id] = document.getElementById(id + '-view');
+        // This loop will now correctly populate the 'views' object using its keys.
+        Object.keys(views).forEach(viewKey => { 
+            const viewElement = document.getElementById(viewKey + '-view');
+            if (viewElement) {
+                views[viewKey] = viewElement;
+            } else {
+                // This console warning helps if a view ID in HTML doesn't match a key in the `views` object.
+                console.warn(`View element not found for key: ${viewKey} (expected ID: ${viewKey}-view)`);
+            }
         });
+
 
         let currentLightboxZoomScale = 1;
         const LIGHTBOX_ZOOM_STEP = 0.2, LIGHTBOX_MIN_ZOOM = 0.4, LIGHTBOX_MAX_ZOOM = 5;   
@@ -2043,8 +2064,9 @@
         };
 
         let touchstartX = 0, touchendX = 0;
-        const entryDetailViewEl = views.entryDetail; // Ensure views.entryDetail is assigned
-        if (entryDetailViewEl) { // Check if element exists before adding listeners
+        // The views object is now populated correctly before this point.
+        const entryDetailViewEl = views.entryDetail; 
+        if (entryDetailViewEl) { 
             function handleSwipe() {
                 const swipeThreshold = 50; 
                 if (touchendX < touchstartX - swipeThreshold) document.getElementById('next-entry-btn').click();
@@ -2053,7 +2075,7 @@
             entryDetailViewEl.addEventListener('touchstart', e => { touchstartX = e.changedTouches[0].screenX; }, {passive: true});
             entryDetailViewEl.addEventListener('touchend', e => { touchendX = e.changedTouches[0].screenX; handleSwipe(); }, {passive: true});
         } else {
-            console.warn("#entry-detail-view not found for swipe listeners.");
+            console.warn("#entry-detail-view not found for swipe listeners. This might happen if 'views.entryDetail' is not correctly populated.");
         }
 
 
@@ -2076,5 +2098,3 @@
     </script>
 </body>
 </html>
-
-
