@@ -337,6 +337,7 @@
             height: 160px; 
             object-fit: cover;
             display: block; 
+            background-color: #f0f0f0; /* Placeholder color if no image */
         }
 
         .grid-entry-info {
@@ -390,6 +391,7 @@
             display: inline-block;
         }
 
+        /* Image Upload and Preview Styling */
         #new-entry-view #image-upload-label {
             display: block; width: 100%; height: 200px;
             border: 2px dashed var(--input-border); 
@@ -410,23 +412,46 @@
             width: 52px; height: 52px;
         }
         
-        #new-entry-view #image-preview-wrapper { margin-bottom: 20px; text-align: center; }
-        #new-entry-view #image-preview-container { position: relative; display: inline-block; max-width: 100%; }
-        #new-entry-view #image-preview {
-            max-width: 100%; max-height: 300px;
-            border-radius: var(--border-radius-main); display: block;
+        #image-previews-container, #edit-existing-images-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .image-preview-item {
+            position: relative;
+            width: 100px;
+            height: 100px;
             border: 1px solid var(--card-border);
+            border-radius: var(--border-radius-small);
+            overflow: hidden;
         }
-        #new-entry-view #remove-image-btn {
-            position: absolute; top: 8px; right: 8px;
-            background: rgba(217, 48, 37, 0.85); 
+        .image-preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .remove-preview-btn {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: rgba(217, 48, 37, 0.85);
             color: white;
-            border: 1px solid rgba(255,255,255,0.3); 
+            border: 1px solid rgba(255,255,255,0.3);
             border-radius: 50%;
-            width: 30px; height: 30px; font-size: 20px; cursor: pointer;
-            line-height: 28px; text-align: center; padding:0;
-            display: flex; align-items: center; justify-content: center;
+            width: 24px;
+            height: 24px;
+            font-size: 16px;
+            line-height: 22px;
+            text-align: center;
+            padding: 0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
+
 
         #date-prompt-message { 
             font-size: 0.9em; 
@@ -474,9 +499,9 @@
 
 
         #entry-detail-view #detail-image-container {
-            width: 100%; height: 40vh; 
+            width: 100%; height: 40vh; /* Main image display area */
             background-color: #F8F9FA; 
-            display: flex; align-items: center; justify-content: center; margin-bottom: 25px;
+            display: flex; align-items: center; justify-content: center; margin-bottom: 15px; /* Reduced bottom margin */
             border-radius: var(--border-radius-main);
             overflow: hidden;
         }
@@ -484,8 +509,29 @@
             max-width: 100%; 
             max-height: 100%; 
             object-fit: contain; 
-            /* cursor will be set by JS if lightbox is enabled */
+            cursor: zoom-in;
         }
+        #detail-thumbnails-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px;
+            justify-content: flex-start; /* Align thumbnails to the start */
+        }
+        .detail-thumbnail {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: var(--border-radius-small);
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: border-color 0.2s;
+        }
+        .detail-thumbnail.active-thumb {
+            border-color: var(--primary-accent);
+        }
+
+
         #entry-detail-view #detail-content { padding: 0 10px; }
         #entry-detail-view #detail-content h2 { 
             margin-top: 0; 
@@ -579,16 +625,29 @@
             color: var(--primary-accent-darker);
         }
 
-        #edit-entry-view #edit-image-preview {
-            max-width: 100%; 
-            max-height: 300px; 
-            border-radius: var(--border-radius-main); 
-            margin-bottom: 20px;
-            display: block;
-            margin-left: auto;
-            margin-right: auto;
-            border: 1px solid var(--card-border);
+        /* Edit Entry View Image Styling */
+        #edit-entry-view .form-group-images label { margin-bottom: 10px; display: block; }
+        #edit-add-more-images-label {
+            display: inline-block;
+            padding: 10px 15px;
+            background-color: var(--secondary-button-bg);
+            color: var(--secondary-button-text);
+            border: 1px solid var(--secondary-button-border);
+            border-radius: var(--border-radius-small);
+            cursor: pointer;
+            margin-top: 10px;
+            font-size: 0.9em;
         }
+        #edit-add-more-images-label:hover {
+            background-color: var(--secondary-button-hover-bg);
+        }
+        #edit-new-image-previews-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px; /* Space above new previews if any */
+        }
+
 
         /* Lightbox Styles */
         #lightbox-overlay {
@@ -598,44 +657,43 @@
             width: 100%;
             height: 100%;
             background-color: rgba(0, 0, 0, 0.85);
-            display: flex; /* For centering lightbox-content */
+            display: flex; 
             align-items: center;
             justify-content: center;
             z-index: 2000; 
-            padding: 15px; /* Some padding around the lightbox content area */
+            padding: 15px; 
             box-sizing: border-box;
         }
 
         #lightbox-content {
-            position: relative; /* For positioning controls if they were inside */
-            max-width: 95vw;    /* Max viewport width for the image container */
-            max-height: 95vh;   /* Max viewport height for the image container */
-            display: flex;      /* For centering the image itself if it's smaller than container */
+            position: relative; 
+            max-width: 95vw;    
+            max-height: 95vh;   
+            display: flex;      
             align-items: center;
             justify-content: center;
-            overflow: hidden;   /* Initially hidden, JS changes to 'auto' for panning when zoomed */
-            background-color: #111; /* Optional: dark bg for the image area itself */
+            overflow: hidden;   
+            background-color: #111; 
             border-radius: var(--border-radius-small);
         }
 
         #lightbox-image {
             display: block;
-            /* Fit within lightbox-content while maintaining aspect ratio */
             max-width: 100%; 
             max-height: 100%;
             object-fit: contain; 
             transition: transform 0.2s ease-out;
-            transform-origin: center center; /* Zoom from the center */
+            transform-origin: center center; 
         }
 
         #lightbox-controls {
-            position: absolute; /* Position relative to lightbox-overlay */
-            top: 20px;          /* Adjust as needed */
-            right: 20px;         /* Adjust as needed */
+            position: absolute; 
+            top: 20px;          
+            right: 20px;         
             display: flex;
-            flex-direction: column; /* Stack buttons vertically */
+            flex-direction: column; 
             gap: 12px;
-            z-index: 2001; /* Ensure controls are above lightbox-content if it has a bg */
+            z-index: 2001; 
         }
 
         .lightbox-control-btn {
@@ -650,14 +708,14 @@
             justify-content: center;
             cursor: pointer;
             transition: background-color 0.2s;
-            padding: 0; /* Remove default button padding */
+            padding: 0; 
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
 
         .lightbox-control-btn svg {
             width: 22px; 
             height: 22px;
-            pointer-events: none; /* Ensure clicks on SVG pass to button */
+            pointer-events: none; 
         }
 
         .lightbox-control-btn:hover {
@@ -771,20 +829,17 @@
                  <h2 id="new-entry-title-header">New Entry</h2>
             </header>
             <form id="new-entry-form">
-                <input type="file" id="image-upload" accept="image/*" class="hidden">
+                <input type="file" id="image-upload" accept="image/*" class="hidden" multiple>
                 <label for="image-upload" id="image-upload-label">
                     <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" class="bi bi-camera" viewBox="0 0 16 16">
                         <path d="M15 12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h1.172a3 3 0 0 0 2.12-.879l.83-.828A1 1 0 0 1 6.827 3h2.344a1 1 0 0 1 .707.293l.828.828A3 3 0 0 0 12.828 5H14a1 1 0 0 1 1 1v6zM2 4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1.172a2 2 0 0 1-1.414-.586l-.828-.828A2 2 0 0 0 9.172 2H6.828a2 2 0 0 0-1.414.586l-.828.828A2 2 0 0 1 3.172 4H2z"/>
                         <path d="M8 11a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5zm0 1a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM3 6.5a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0z"/>
                     </svg>
-                    <p>Tap to select or snap a photo</p>
+                    <p>Tap to select or snap photo(s)</p>
                 </label>
                 
-                <div id="image-preview-wrapper" class="hidden">
-                    <div id="image-preview-container">
-                        <img id="image-preview" alt="Image preview">
-                        <button type="button" id="remove-image-btn" title="Remove image">×</button>
-                    </div>
+                <div id="image-previews-container">
+                    <!-- Image previews will be dynamically added here -->
                 </div>
                 <div id="image-processing-loader" class="loader hidden"></div>
 
@@ -802,7 +857,7 @@
                     <textarea id="entry-notes"></textarea>
                 </div>
                 <div class="form-group">
-                    <label>Tags (AI suggestions, click to toggle, or type your own)</label>
+                    <label>Tags (AI suggestions for first image, click to toggle, or type your own)</label>
                     <div id="tag-bar">
                         <input type="text" id="custom-tag-input" placeholder="Add custom tag...">
                     </div>
@@ -821,6 +876,9 @@
             </header>
             <div id="detail-image-container">
                 <img id="detail-image" alt="Entry image">
+            </div>
+            <div id="detail-thumbnails-container">
+                <!-- Thumbnails for multiple images will be here -->
             </div>
             <div id="detail-content">
                 <h2 id="detail-title">Entry Title</h2>
@@ -844,8 +902,18 @@
                 <h2 id="edit-entry-title-header">Edit Entry</h2>
             </header>
             <form id="edit-entry-form">
-                <div id="edit-image-preview-wrapper">
-                    <img id="edit-image-preview" alt="Entry image">
+                <div class="form-group form-group-images">
+                    <label>Current Images (click × to remove):</label>
+                    <div id="edit-existing-images-container">
+                        <!-- Existing image previews will be here -->
+                    </div>
+                </div>
+                 <div class="form-group">
+                    <label for="edit-add-more-images-input" id="edit-add-more-images-label">Add More Images...</label>
+                    <input type="file" id="edit-add-more-images-input" accept="image/*" class="hidden" multiple>
+                    <div id="edit-new-image-previews-container">
+                        <!-- New image previews for edit view will be here -->
+                    </div>
                 </div>
                 
                 <div class="form-group">
@@ -930,15 +998,23 @@
             activeCollectionId: null,
             activeEntryId: null,
             activeEntries: [], 
-            selectedImageFile: null,
-            selectedImageDataURL: null,
+            
+            // For New Entry
+            newEntrySelectedFiles: [],      // Array of File objects
+            
+            // For Edit Entry
+            editingEntryOriginal: null,     // Stores the original entry being edited
+            editEntryExistingImageUrls: [], // URLs of images already part of the entry
+            editEntryFilesToAdd: [],        // New File objects to be added during edit
+
             currentTags: [],      
             aiSuggestedTags: [],  
             currentTagName: null, 
             taggedEntries: [],    
             viewBeforeTagSearch: null, 
             entryIdBeforeTagSearch: null, 
-            collectionIdForEntryBeforeTagSearch: null, 
+            collectionIdForEntryBeforeTagSearch: null,
+            currentDetailImageIndex: 0, // For multi-image display in detail view
         };
 
         // View Elements
@@ -970,23 +1046,31 @@
         const entriesTimelineContainer = document.getElementById('entries-timeline-container');
         const noEntriesMessage = document.getElementById('no-entries-message');
         const entriesLoading = document.getElementById('entries-loading');
+        
         const imageUploadInput = document.getElementById('image-upload');
         const imageUploadLabel = document.getElementById('image-upload-label');
-        const imagePreviewWrapper = document.getElementById('image-preview-wrapper');
-        const imagePreview = document.getElementById('image-preview');
+        const imagePreviewsContainer = document.getElementById('image-previews-container'); // For new entry previews
         const imageProcessingLoader = document.getElementById('image-processing-loader');
         const entryDateInput = document.getElementById('entry-date');
         const datePromptMessage = document.getElementById('date-prompt-message');
         const tagBar = document.getElementById('tag-bar'); 
         const editTagBarEl = document.getElementById('edit-tag-bar'); 
         const entryUploadLoader = document.getElementById('entry-upload-loader');
+        
         const detailImage = document.getElementById('detail-image');
+        const detailThumbnailsContainer = document.getElementById('detail-thumbnails-container');
         const detailTitle = document.getElementById('detail-title');
         const detailNotes = document.getElementById('detail-notes');
         const detailTagsContainer = document.getElementById('detail-tags');
         const detailMetadata = document.getElementById('detail-metadata');
         const loginError = document.getElementById('login-error');
         const signupError = document.getElementById('signup-error');
+
+        // Edit Entry Image Elements
+        const editExistingImagesContainer = document.getElementById('edit-existing-images-container');
+        const editAddMoreImagesInput = document.getElementById('edit-add-more-images-input');
+        const editNewImagePreviewsContainer = document.getElementById('edit-new-image-previews-container');
+
 
         // Lightbox Elements
         const lightboxOverlay = document.getElementById('lightbox-overlay');
@@ -1102,9 +1186,9 @@
             try {
                 const { data: entries, error } = await supabaseClient
                     .from('entries')
-                    .select('*')
+                    .select('*') // Supabase automatically converts TEXT[] to JS array
                     .eq('collection_id', collectionId)
-                    .order('date', { ascending: false }); // Newest first
+                    .order('date', { ascending: false }); 
 
                 if (error) throw error;
                 return entries || [];
@@ -1116,7 +1200,7 @@
             }
         }
 
-        async function uploadImage(file, userId) {
+        async function uploadImage(file, userId) { // This remains for uploading a single file
             const fileExt = file.name.split('.').pop();
             const fileName = `${userId}/${Date.now()}.${fileExt}`; 
             
@@ -1132,7 +1216,7 @@
             return publicUrl;
         }
 
-        async function predictTagsForImage(imgDataURL) {
+        async function predictTagsForImage(imgDataURL) { // Operates on a single image data URL
             if (!GOOGLE_CLOUD_VISION_API_KEY || GOOGLE_CLOUD_VISION_API_KEY === 'YOUR_GOOGLE_CLOUD_VISION_API_KEY_HERE') {
                 console.warn("Google Cloud Vision API key not configured or is a generic placeholder. Skipping tag prediction.");
                 return [];
@@ -1205,7 +1289,7 @@
             if (!collection) { console.error("Collection not found"); navigateTo('home'); return; }
             collectionTitleTimeline.textContent = collection.name;
             entriesTimelineContainer.innerHTML = '';
-            appState.activeEntries = await loadEntries(collection.id); // Newest first
+            appState.activeEntries = await loadEntries(collection.id); 
             noEntriesMessage.classList.toggle('hidden', appState.activeEntries.length > 0);
             
             appState.activeEntries.forEach((entry, idx) => {
@@ -1227,9 +1311,11 @@
                         badgeHTML = `<span class="days-since-badge">Same day</span>`;
                     }
                 }
+                // Use the first image_url for the grid tile, or a placeholder/empty if no images
+                const firstImageUrl = (entry.image_urls && entry.image_urls.length > 0) ? entry.image_urls[0] : '';
                 
                 tile.innerHTML = `
-                    <img src="${entry.image_url}" alt="${entry.title}" class="grid-entry-image">
+                    <img src="${firstImageUrl}" alt="${entry.title}" class="grid-entry-image" ${!firstImageUrl ? 'style="background-color: #eee;"' : ''}>
                     <div class="grid-entry-info">
                         ${badgeHTML}
                         <h3 class="grid-entry-title">${entry.title}</h3>
@@ -1313,36 +1399,162 @@
             _renderTagBar(editTagBarEl, 'edit-custom-tag-input', appState.currentTags, [], handleAddCustomTagForEditEntry, handleRemoveSelectedTagForEditEntry, () => {});
         }
 
-
         function renderNewEntryForm() {
             newEntryForm.reset();
-            imagePreviewWrapper.classList.add('hidden');
+            imagePreviewsContainer.innerHTML = ''; // Clear previous previews
             imageUploadLabel.classList.remove('hidden');
-            imagePreview.src = '#';
             datePromptMessage.classList.add('hidden');
             entryDateInput.value = formatDate(new Date());
-            appState.selectedImageFile = null;
-            appState.selectedImageDataURL = null;
+            
+            appState.newEntrySelectedFiles = []; // Reset selected files
             appState.currentTags = []; 
             appState.aiSuggestedTags = []; 
             _renderTagBar(tagBar, 'custom-tag-input', appState.currentTags, appState.aiSuggestedTags, handleAddCustomTagForNewEntry, handleRemoveSelectedTagForNewEntry, handleSelectSuggestedTagForNewEntry);
+            
             imageProcessingLoader.classList.add('hidden');
             entryUploadLoader.classList.add('hidden');
         }
         
+        // --- New Entry Image Preview Handling ---
+        function renderNewEntryImagePreviews() {
+            imagePreviewsContainer.innerHTML = ''; // Clear existing previews
+            if (appState.newEntrySelectedFiles.length > 0) {
+                imageUploadLabel.classList.add('hidden');
+            } else {
+                imageUploadLabel.classList.remove('hidden');
+            }
+
+            appState.newEntrySelectedFiles.forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const previewItem = document.createElement('div');
+                    previewItem.className = 'image-preview-item';
+                    previewItem.innerHTML = `
+                        <img src="${e.target.result}" alt="Preview ${index + 1}">
+                        <button type="button" class="remove-preview-btn" data-index="${index}" title="Remove image">×</button>
+                    `;
+                    previewItem.querySelector('.remove-preview-btn').onclick = () => {
+                        appState.newEntrySelectedFiles.splice(index, 1);
+                        renderNewEntryImagePreviews(); // Re-render previews
+                        // If all files removed, re-evaluate AI tags (e.g., clear them or re-predict if needed)
+                        if(appState.newEntrySelectedFiles.length === 0) {
+                             appState.aiSuggestedTags = [];
+                             _renderTagBar(tagBar, 'custom-tag-input', appState.currentTags, appState.aiSuggestedTags, handleAddCustomTagForNewEntry, handleRemoveSelectedTagForNewEntry, handleSelectSuggestedTagForNewEntry);
+                        } else if (index === 0) { // If the first image was removed, re-predict
+                            processFirstImageForNewEntry();
+                        }
+                    };
+                    imagePreviewsContainer.appendChild(previewItem);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function processFirstImageForNewEntry() {
+            if (appState.newEntrySelectedFiles.length > 0) {
+                const firstFile = appState.newEntrySelectedFiles[0];
+                const reader = new FileReader();
+                reader.onload = async (event) => {
+                    const firstImageDataURL = event.target.result;
+                    // EXIF data for the first image
+                    EXIF.getData(firstFile, function() {
+                        let exifDateFound = false;
+                        const dto = EXIF.getTag(this, "DateTimeOriginal");
+                        if (dto) {
+                            try {
+                                const [datePart] = dto.split(' ');
+                                const [year, month, day] = datePart.split(':');
+                                if (year && month && day && !isNaN(new Date(`${year}-${month}-${day}`))) {
+                                    entryDateInput.value = `${year}-${month}-${day}`;
+                                    exifDateFound = true;
+                                }
+                            } catch (ex) { console.warn("EXIF parse error:", ex); }
+                        }
+                        datePromptMessage.classList.toggle('hidden', exifDateFound);
+                        if (!exifDateFound) datePromptMessage.textContent = 'No date in first image. Set manually or use today.';
+                    });
+                    // AI Tags for the first image
+                    const predictedTags = await predictTagsForImage(firstImageDataURL);
+                    appState.aiSuggestedTags = predictedTags.filter(pt => !appState.currentTags.includes(pt));
+                    _renderTagBar(tagBar, 'custom-tag-input', appState.currentTags, appState.aiSuggestedTags, handleAddCustomTagForNewEntry, handleRemoveSelectedTagForNewEntry, handleSelectSuggestedTagForNewEntry);
+                };
+                reader.readAsDataURL(firstFile);
+            } else {
+                 datePromptMessage.classList.add('hidden');
+                 appState.aiSuggestedTags = [];
+                 _renderTagBar(tagBar, 'custom-tag-input', appState.currentTags, appState.aiSuggestedTags, handleAddCustomTagForNewEntry, handleRemoveSelectedTagForNewEntry, handleSelectSuggestedTagForNewEntry);
+            }
+        }
+
+
+        // --- Edit Entry Form Rendering ---
         function renderEditEntryForm(entry) {
-            document.getElementById('edit-image-preview').src = entry.image_url;
+            appState.editingEntryOriginal = JSON.parse(JSON.stringify(entry)); // Deep copy
+            appState.editEntryExistingImageUrls = [...(entry.image_urls || [])];
+            appState.editEntryFilesToAdd = [];
+
+            editExistingImagesContainer.innerHTML = '';
+            editNewImagePreviewsContainer.innerHTML = '';
+
+            // Render existing images
+            appState.editEntryExistingImageUrls.forEach((url, index) => {
+                const previewItem = document.createElement('div');
+                previewItem.className = 'image-preview-item'; // Re-use class for consistency
+                previewItem.innerHTML = `
+                    <img src="${url}" alt="Existing image ${index + 1}">
+                    <button type="button" class="remove-preview-btn" data-url="${url}" title="Remove image">×</button>
+                `;
+                previewItem.querySelector('.remove-preview-btn').onclick = () => {
+                    appState.editEntryExistingImageUrls = appState.editEntryExistingImageUrls.filter(imgUrl => imgUrl !== url);
+                    previewItem.remove(); // Remove from DOM
+                };
+                editExistingImagesContainer.appendChild(previewItem);
+            });
+            
             document.getElementById('edit-entry-date').value = formatDate(entry.date);
             document.getElementById('edit-entry-title').value = entry.title;
             document.getElementById('edit-entry-notes').value = entry.notes || '';
-            appState.currentTags = [...(entry.tags || [])];
+            appState.currentTags = [...(entry.tags || [])]; // Reset for edit view
             _renderTagBar(editTagBarEl, 'edit-custom-tag-input', appState.currentTags, [], handleAddCustomTagForEditEntry, handleRemoveSelectedTagForEditEntry, () => {});
             document.getElementById('edit-upload-loader').classList.add('hidden');
         }
 
+        // --- Edit Entry New Image Previews ---
+        function renderEditEntryNewImagePreviews() {
+            editNewImagePreviewsContainer.innerHTML = ''; // Clear existing new previews
+            appState.editEntryFilesToAdd.forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const previewItem = document.createElement('div');
+                    previewItem.className = 'image-preview-item';
+                    previewItem.innerHTML = `
+                        <img src="${e.target.result}" alt="New preview ${index + 1}">
+                        <button type="button" class="remove-preview-btn" data-index="${index}" title="Remove new image">×</button>
+                    `;
+                    previewItem.querySelector('.remove-preview-btn').onclick = () => {
+                        appState.editEntryFilesToAdd.splice(index, 1);
+                        renderEditEntryNewImagePreviews(); // Re-render new previews
+                    };
+                    editNewImagePreviewsContainer.appendChild(previewItem);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
 
+
+        // --- Entry Detail View Rendering ---
         function renderEntryDetailView(entry) {
-            detailImage.src = entry.image_url;
+            if (!entry || !entry.image_urls || entry.image_urls.length === 0) {
+                detailImage.src = ''; // Or a placeholder
+                detailImage.alt = 'No image available';
+                detailImage.style.cursor = 'default';
+                detailImage.onclick = null;
+                detailThumbnailsContainer.innerHTML = '';
+            } else {
+                appState.currentDetailImageIndex = 0; // Reset to first image
+                displayDetailImage(entry, appState.currentDetailImageIndex);
+            }
+
             detailTitle.textContent = entry.title;
             detailNotes.textContent = entry.notes || 'No notes.';
             detailMetadata.textContent = `Date: ${formatDate(entry.date)}`;
@@ -1366,13 +1578,33 @@
             document.getElementById('next-entry-btn').onclick = () => {
                 if (idx < appState.activeEntries.length - 1) { appState.activeEntryId = appState.activeEntries[idx + 1].id; renderEntryDetailView(appState.activeEntries[idx + 1]); }
             };
-
-            // Lightbox functionality for the detail image
-            detailImage.style.cursor = 'zoom-in';
-            detailImage.onclick = () => {
-                openLightbox(entry.image_url);
-            };
         }
+
+        function displayDetailImage(entry, index) {
+            if (!entry.image_urls || index < 0 || index >= entry.image_urls.length) return;
+
+            appState.currentDetailImageIndex = index;
+            const currentImageUrl = entry.image_urls[index];
+            detailImage.src = currentImageUrl;
+            detailImage.alt = `${entry.title} - Image ${index + 1}`;
+            detailImage.style.cursor = 'zoom-in';
+            detailImage.onclick = () => openLightbox(currentImageUrl);
+
+            // Render thumbnails
+            detailThumbnailsContainer.innerHTML = '';
+            entry.image_urls.forEach((url, i) => {
+                const thumb = document.createElement('img');
+                thumb.src = url;
+                thumb.alt = `Thumbnail ${i + 1}`;
+                thumb.className = 'detail-thumbnail';
+                if (i === index) {
+                    thumb.classList.add('active-thumb');
+                }
+                thumb.onclick = () => displayDetailImage(entry, i);
+                detailThumbnailsContainer.appendChild(thumb);
+            });
+        }
+
 
         async function handleTagClick(tagName) {
             appState.currentTagName = tagName;
@@ -1410,11 +1642,10 @@
                 }
 
                 const userCollectionIds = userCollectionObjects.map(c => c.id);
-                console.log('User collection IDs for tag search:', userCollectionIds);
-
+                
                 const { data: entries, error: entriesError } = await supabaseClient
                     .from('entries')
-                    .select('*')
+                    .select('*') // Selects all columns, including image_urls
                     .in('collection_id', userCollectionIds) 
                     .contains('tags', [tagName])        
                     .order('date', { ascending: false }); 
@@ -1423,7 +1654,6 @@
                     console.error('Supabase error fetching entries by tag and collections:', entriesError);
                     throw entriesError;
                 }
-                console.log(`Fetched entries for tag "${tagName}" in user collections:`, entries);
                 return entries || [];
             } catch (error) {
                 console.error(`Error in fetchEntriesByTag for tag "${tagName}":`, error);
@@ -1464,9 +1694,10 @@
                         badgeHTML = `<span class="days-since-badge">Same day</span>`;
                     }
                 }
+                const firstImageUrl = (entry.image_urls && entry.image_urls.length > 0) ? entry.image_urls[0] : '';
                 
                 tile.innerHTML = `
-                    <img src="${entry.image_url}" alt="${entry.title}" class="grid-entry-image">
+                    <img src="${firstImageUrl}" alt="${entry.title}" class="grid-entry-image" ${!firstImageUrl ? 'style="background-color: #eee;"' : ''}>
                     <div class="grid-entry-info">
                         ${badgeHTML}
                         <h3 class="grid-entry-title">${entry.title}</h3>
@@ -1474,8 +1705,9 @@
                 tile.onclick = async () => {
                     appState.activeEntryId = entry.id;
                     appState.activeCollectionId = entry.collection_id; 
+                    // Need to load entries for the specific collection if navigating from tagged view
                     appState.activeEntries = await loadEntries(entry.collection_id); 
-                    renderEntryDetailView(entry);
+                    renderEntryDetailView(entry); // Pass the specific entry data
                     navigateTo('entryDetail');
                 };
                 container.appendChild(tile); 
@@ -1595,58 +1827,55 @@
         document.getElementById('add-entry-fab').onclick = () => { renderNewEntryForm(); navigateTo('newEntry'); };
         document.getElementById('back-to-timeline-btn').onclick = () => { appState.activeCollectionId ? renderCollectionTimelineView() : navigateTo('home'); };
 
+        // New Entry Image Upload Handler
         imageUploadInput.onchange = e => {
-            const file = e.target.files[0]; if (!file) return;
-            appState.selectedImageFile = file;
-            imageUploadLabel.classList.add('hidden'); imagePreviewWrapper.classList.remove('hidden');
-            const reader = new FileReader();
-            reader.onload = async evt => {
-                appState.selectedImageDataURL = evt.target.result; imagePreview.src = appState.selectedImageDataURL;
-                appState.currentTags = []; 
-                appState.aiSuggestedTags = [];
-                _renderTagBar(tagBar, 'custom-tag-input', appState.currentTags, appState.aiSuggestedTags, handleAddCustomTagForNewEntry, handleRemoveSelectedTagForNewEntry, handleSelectSuggestedTagForNewEntry);
-                datePromptMessage.classList.add('hidden'); entryDateInput.value = formatDate(new Date());
-                EXIF.getData(file, function() {
-                    let exifDateFound = false; const dto = EXIF.getTag(this, "DateTimeOriginal");
-                    if (dto) { try { const [datePart] = dto.split(' '); const [year, month, day] = datePart.split(':'); if (year && month && day && !isNaN(new Date(`${year}-${month}-${day}`))) { entryDateInput.value = `${year}-${month}-${day}`; exifDateFound = true; }} catch (ex) { console.warn("EXIF parse error:", ex); }}
-                    if (!exifDateFound) { datePromptMessage.textContent = 'No date in image. Set manually or use today.'; datePromptMessage.classList.remove('hidden');}
-                });
-                const predictedTags = await predictTagsForImage(appState.selectedImageDataURL);
-                appState.aiSuggestedTags = predictedTags.filter(pt => !appState.currentTags.includes(pt)); 
-                _renderTagBar(tagBar, 'custom-tag-input', appState.currentTags, appState.aiSuggestedTags, handleAddCustomTagForNewEntry, handleRemoveSelectedTagForNewEntry, handleSelectSuggestedTagForNewEntry);
-            };
-            reader.readAsDataURL(file);
-        };
-
-        document.getElementById('remove-image-btn').onclick = () => {
-            imagePreviewWrapper.classList.add('hidden'); imageUploadLabel.classList.remove('hidden');
-            imagePreview.src = '#'; imageUploadInput.value = null; 
-            appState.selectedImageFile = null; appState.selectedImageDataURL = null; appState.currentTags = []; appState.aiSuggestedTags = [];
-            _renderTagBar(tagBar, 'custom-tag-input', appState.currentTags, appState.aiSuggestedTags, handleAddCustomTagForNewEntry, handleRemoveSelectedTagForNewEntry, handleSelectSuggestedTagForNewEntry);
-            imageProcessingLoader.classList.add('hidden'); datePromptMessage.classList.add('hidden'); entryDateInput.value = formatDate(new Date());
+            appState.newEntrySelectedFiles = Array.from(e.target.files); // Store FileList as an array
+            renderNewEntryImagePreviews();
+            processFirstImageForNewEntry(); // For EXIF and AI tags of the first image
         };
 
         document.getElementById('add-custom-tag-btn').onclick = handleAddCustomTagForNewEntry;
         tagBar.addEventListener('keypress', e => { if (e.target.id === 'custom-tag-input' && e.key === 'Enter') { e.preventDefault(); handleAddCustomTagForNewEntry(); }});
 
         newEntryForm.onsubmit = async (e) => {
-            e.preventDefault(); if (!appState.selectedImageFile) { alert("Please select an image."); return; }
-            entryUploadLoader.classList.remove('hidden'); document.getElementById('create-entry-btn').disabled = true;
+            e.preventDefault(); 
+            if (appState.newEntrySelectedFiles.length === 0) { 
+                alert("Please select at least one image."); return; 
+            }
+            entryUploadLoader.classList.remove('hidden'); 
+            document.getElementById('create-entry-btn').disabled = true;
+            
             try {
-                const imageUrl = await uploadImage(appState.selectedImageFile, appState.currentUser.id);
+                const uploadedImageUrls = [];
+                for (const file of appState.newEntrySelectedFiles) {
+                    const imageUrl = await uploadImage(file, appState.currentUser.id);
+                    uploadedImageUrls.push(imageUrl);
+                }
+
                 const entryData = { 
                     collection_id: appState.activeCollectionId, 
                     title: document.getElementById('entry-title').value, 
                     notes: document.getElementById('entry-notes').value, 
                     date: entryDateInput.value, 
-                    image_url: imageUrl, 
+                    image_urls: uploadedImageUrls, // Save array of URLs
                     tags: appState.currentTags.filter(Boolean) 
                 };
                 const { error } = await supabaseClient.from('entries').insert(entryData).select().single();
                 if (error) throw error;
-                await renderCollectionTimelineView();
-            } catch (error) { console.error('Error in entry creation process:', error); alert(`Error creating entry: ${error.message}`);
-            } finally { entryUploadLoader.classList.add('hidden'); document.getElementById('create-entry-btn').disabled = false; }
+                
+                // Reset new entry form state
+                appState.newEntrySelectedFiles = [];
+                imagePreviewsContainer.innerHTML = '';
+                imageUploadLabel.classList.remove('hidden');
+
+                await renderCollectionTimelineView(); // This will navigate to collectionTimeline
+            } catch (error) { 
+                console.error('Error in entry creation process:', error); 
+                alert(`Error creating entry: ${error.message}`);
+            } finally { 
+                entryUploadLoader.classList.add('hidden'); 
+                document.getElementById('create-entry-btn').disabled = false; 
+            }
         };
 
         document.getElementById('back-to-timeline-from-detail-btn').onclick = () => { appState.activeCollectionId ? renderCollectionTimelineView() : navigateTo('home'); };
@@ -1661,7 +1890,6 @@
                     renderEntryDetailView(originalEntry);
                     navigateTo('entryDetail');
                 } else {
-                    console.warn("Could not find original entry to go back to. Navigating home.");
                     navigateTo('home');
                 }
             } else {
@@ -1674,6 +1902,7 @@
             const col = appState.collections.find(c => c.id === appState.activeCollectionId);
             if (!col || !confirm(`Delete collection "${col.name}" and ALL its entries? This cannot be undone.`)) return;
             try {
+                 // Consider deleting images from storage if needed, though this can be complex
                 const { error: entriesError } = await supabaseClient.from('entries').delete().eq('collection_id', appState.activeCollectionId);
                 if (entriesError) throw entriesError;
 
@@ -1687,6 +1916,7 @@
         document.getElementById('delete-entry-btn').onclick = async () => {
             if (!appState.activeEntryId || !confirm("Are you sure you want to delete this entry?")) return;
             try {
+                // Consider deleting images from storage here as well
                 const { error } = await supabaseClient.from('entries').delete().eq('id', appState.activeEntryId);
                 if (error) throw error;
                 appState.activeEntryId = null; await renderCollectionTimelineView();
@@ -1701,9 +1931,15 @@
             if (entry) { renderEditEntryForm(entry); navigateTo('editEntry'); }
         };
         document.getElementById('back-to-detail-btn').onclick = () => {
-            const entry = appState.activeEntries.find(e => e.id === appState.activeEntryId);
+            const entry = appState.activeEntries.find(e => e.id === appState.activeEntryId) || appState.editingEntryOriginal;
             if (entry) { renderEntryDetailView(entry); navigateTo('entryDetail'); } 
             else { renderCollectionTimelineView(); }
+        };
+
+        // Edit Entry: Handle adding more images
+        editAddMoreImagesInput.onchange = (e) => {
+            appState.editEntryFilesToAdd = Array.from(e.target.files);
+            renderEditEntryNewImagePreviews();
         };
 
         document.getElementById('edit-add-custom-tag-btn').onclick = handleAddCustomTagForEditEntry;
@@ -1711,18 +1947,62 @@
 
         editEntryForm.onsubmit = async (e) => {
             e.preventDefault();
-            const editLoader = document.getElementById('edit-upload-loader'); const saveBtn = document.getElementById('save-entry-btn');
-            editLoader.classList.remove('hidden'); saveBtn.disabled = true;
+            const editLoader = document.getElementById('edit-upload-loader'); 
+            const saveBtn = document.getElementById('save-entry-btn');
+            editLoader.classList.remove('hidden'); 
+            saveBtn.disabled = true;
+
             try {
-                const { error } = await supabaseClient.from('entries').update({ title: document.getElementById('edit-entry-title').value, notes: document.getElementById('edit-entry-notes').value, date: document.getElementById('edit-entry-date').value, tags: appState.currentTags.filter(Boolean) }).eq('id', appState.activeEntryId);
+                const newUploadedImageUrls = [];
+                // Upload any newly added files
+                for (const file of appState.editEntryFilesToAdd) {
+                    const imageUrl = await uploadImage(file, appState.currentUser.id);
+                    newUploadedImageUrls.push(imageUrl);
+                }
+
+                // Combine existing (kept) URLs with newly uploaded URLs
+                const finalImageUrls = [...appState.editEntryExistingImageUrls, ...newUploadedImageUrls];
+
+                const updatedEntryData = { 
+                    title: document.getElementById('edit-entry-title').value, 
+                    notes: document.getElementById('edit-entry-notes').value, 
+                    date: document.getElementById('edit-entry-date').value, 
+                    tags: appState.currentTags.filter(Boolean),
+                    image_urls: finalImageUrls // Updated array of URLs
+                };
+
+                const { error } = await supabaseClient
+                    .from('entries')
+                    .update(updatedEntryData)
+                    .eq('id', appState.activeEntryId);
+
                 if (error) throw error;
+                
+                // Important: After successful update, fetch the updated list of entries for the current collection
+                // to ensure appState.activeEntries is fresh before rendering detail or timeline.
                 appState.activeEntries = await loadEntries(appState.activeCollectionId); 
-                const updatedEntry = appState.activeEntries.find(e => e.id === appState.activeEntryId);
-                if (updatedEntry) { renderEntryDetailView(updatedEntry); navigateTo('entryDetail'); } 
-                else { renderCollectionTimelineView(); }
-            } catch (error) { console.error('Error updating entry:', error); alert('Error updating entry.');
-            } finally { editLoader.classList.add('hidden'); saveBtn.disabled = false; }
+                const updatedEntry = appState.activeEntries.find(entry => entry.id === appState.activeEntryId);
+
+                if (updatedEntry) { 
+                    renderEntryDetailView(updatedEntry); 
+                    navigateTo('entryDetail'); 
+                } else { 
+                    // Should not happen if update was successful and entry still exists
+                    renderCollectionTimelineView(); 
+                }
+            } catch (error) { 
+                console.error('Error updating entry:', error); 
+                alert('Error updating entry.');
+            } finally { 
+                editLoader.classList.add('hidden'); 
+                saveBtn.disabled = false; 
+                // Reset edit form state
+                appState.editEntryFilesToAdd = [];
+                appState.editEntryExistingImageUrls = [];
+                editNewImagePreviewsContainer.innerHTML = '';
+            }
         };
+
 
         let touchstartX = 0, touchendX = 0;
         const entryDetailViewEl = views.entryDetail;
@@ -1737,12 +2017,10 @@
         document.addEventListener('DOMContentLoaded', async () => { 
             await checkAuth(); 
 
-            // Lightbox control event listeners
             lightboxCloseBtn.addEventListener('click', closeLightbox);
             lightboxZoomInBtn.addEventListener('click', zoomInLightbox);
             lightboxZoomOutBtn.addEventListener('click', zoomOutLightbox);
             lightboxOverlay.addEventListener('click', (event) => {
-                // Close if clicked on the overlay itself, not its children (image, controls)
                 if (event.target === lightboxOverlay) {
                     closeLightbox();
                 }
