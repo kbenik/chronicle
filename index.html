@@ -999,13 +999,11 @@
             activeEntryId: null,
             activeEntries: [], 
             
-            // For New Entry
-            newEntrySelectedFiles: [],      // Array of File objects
+            newEntrySelectedFiles: [],      
             
-            // For Edit Entry
-            editingEntryOriginal: null,     // Stores the original entry being edited
-            editEntryExistingImageUrls: [], // URLs of images already part of the entry
-            editEntryFilesToAdd: [],        // New File objects to be added during edit
+            editingEntryOriginal: null,     
+            editEntryExistingImageUrls: [], 
+            editEntryFilesToAdd: [],        
 
             currentTags: [],      
             aiSuggestedTags: [],  
@@ -1014,10 +1012,10 @@
             viewBeforeTagSearch: null, 
             entryIdBeforeTagSearch: null, 
             collectionIdForEntryBeforeTagSearch: null,
-            currentDetailImageIndex: 0, // For multi-image display in detail view
+            currentDetailImageIndex: 0, 
         };
 
-        // View Elements
+        // View Elements (IDs must match HTML)
         const views = {
             signup: document.getElementById('signup-view'),
             login: document.getElementById('login-view'),
@@ -1037,7 +1035,7 @@
         const newEntryForm = document.getElementById('new-entry-form');
         const editEntryForm = document.getElementById('edit-entry-form');
         
-        // Get all other elements
+        // Other DOM Elements
         const greetingEl = document.getElementById('greeting');
         const collectionsContainer = document.getElementById('collections-container');
         const noCollectionsMessage = document.getElementById('no-collections-message');
@@ -1049,7 +1047,7 @@
         
         const imageUploadInput = document.getElementById('image-upload');
         const imageUploadLabel = document.getElementById('image-upload-label');
-        const imagePreviewsContainer = document.getElementById('image-previews-container'); // For new entry previews
+        const imagePreviewsContainer = document.getElementById('image-previews-container'); 
         const imageProcessingLoader = document.getElementById('image-processing-loader');
         const entryDateInput = document.getElementById('entry-date');
         const datePromptMessage = document.getElementById('date-prompt-message');
@@ -1066,13 +1064,10 @@
         const loginError = document.getElementById('login-error');
         const signupError = document.getElementById('signup-error');
 
-        // Edit Entry Image Elements
         const editExistingImagesContainer = document.getElementById('edit-existing-images-container');
         const editAddMoreImagesInput = document.getElementById('edit-add-more-images-input');
         const editNewImagePreviewsContainer = document.getElementById('edit-new-image-previews-container');
 
-
-        // Lightbox Elements
         const lightboxOverlay = document.getElementById('lightbox-overlay');
         const lightboxContent = document.getElementById('lightbox-content');
         const lightboxImage = document.getElementById('lightbox-image');
@@ -1085,7 +1080,23 @@
         const LIGHTBOX_MIN_ZOOM = 0.4; 
         const LIGHTBOX_MAX_ZOOM = 5;   
 
-        // Navigation function
+        // --- Helper function to safely get image URLs array ---
+        function getSanitizedImageUrls(entry) {
+            if (!entry || !entry.image_urls) return [];
+            if (Array.isArray(entry.image_urls)) return entry.image_urls;
+            if (typeof entry.image_urls === 'string') {
+                try {
+                    const parsed = JSON.parse(entry.image_urls);
+                    return Array.isArray(parsed) ? parsed : [];
+                } catch (e) {
+                    console.warn("Could not parse image_urls string, treating as empty:", entry.image_urls, e);
+                    return [];
+                }
+            }
+            return []; // Default to empty if not array or parsable string
+        }
+
+
         function navigateTo(viewId) {
             appState.currentView = viewId;
             Object.keys(views).forEach(id => {
@@ -1097,7 +1108,6 @@
             window.scrollTo(0, 0);
         }
 
-        // Utility functions
         function formatDate(dateStrOrObj) {
             const date = new Date(dateStrOrObj);
             const year = date.getFullYear();
@@ -1116,7 +1126,6 @@
             return Math.ceil((laterDate - earlierDate) / (1000 * 60 * 60 * 24));
         }
 
-        // Supabase Auth Functions
         async function checkAuth() {
             try {
                 const { data: { user } } = await supabaseClient.auth.getUser();
@@ -1145,7 +1154,6 @@
             }
         }
 
-        // Database Functions
         async function loadCollections() {
             collectionsLoading.classList.remove('hidden');
             try {
@@ -1186,7 +1194,7 @@
             try {
                 const { data: entries, error } = await supabaseClient
                     .from('entries')
-                    .select('*') // Supabase automatically converts TEXT[] to JS array
+                    .select('*') 
                     .eq('collection_id', collectionId)
                     .order('date', { ascending: false }); 
 
@@ -1200,7 +1208,7 @@
             }
         }
 
-        async function uploadImage(file, userId) { // This remains for uploading a single file
+        async function uploadImage(file, userId) { 
             const fileExt = file.name.split('.').pop();
             const fileName = `${userId}/${Date.now()}.${fileExt}`; 
             
@@ -1208,7 +1216,7 @@
                 .from('entry-images')
                 .upload(fileName, file, { contentType: file.type, upsert: false });
 
-            if (error) { console.error('Upload error:', error); throw error; }
+            if (error) { console.error('Upload error for file ' + file.name + ':', error); throw error; }
             
             const { data: { publicUrl } } = supabaseClient.storage
                 .from('entry-images')
@@ -1216,9 +1224,9 @@
             return publicUrl;
         }
 
-        async function predictTagsForImage(imgDataURL) { // Operates on a single image data URL
+        async function predictTagsForImage(imgDataURL) { 
             if (!GOOGLE_CLOUD_VISION_API_KEY || GOOGLE_CLOUD_VISION_API_KEY === 'YOUR_GOOGLE_CLOUD_VISION_API_KEY_HERE') {
-                console.warn("Google Cloud Vision API key not configured or is a generic placeholder. Skipping tag prediction.");
+                console.warn("Google Cloud Vision API key not configured. Skipping tag prediction.");
                 return [];
             }
             imageProcessingLoader.classList.remove('hidden');
@@ -1262,7 +1270,6 @@
             }
         }
 
-        // Render Functions
         function renderHomeView() {
             if (!appState.currentUser) { navigateTo('signup'); return; }
             greetingEl.textContent = `Welcome, ${appState.currentUser.username || appState.currentUser.email.split('@')[0]}!`;
@@ -1311,8 +1318,8 @@
                         badgeHTML = `<span class="days-since-badge">Same day</span>`;
                     }
                 }
-                // Use the first image_url for the grid tile, or a placeholder/empty if no images
-                const firstImageUrl = (entry.image_urls && entry.image_urls.length > 0) ? entry.image_urls[0] : '';
+                const entryImageUrls = getSanitizedImageUrls(entry);
+                const firstImageUrl = entryImageUrls.length > 0 ? entryImageUrls[0] : '';
                 
                 tile.innerHTML = `
                     <img src="${firstImageUrl}" alt="${entry.title}" class="grid-entry-image" ${!firstImageUrl ? 'style="background-color: #eee;"' : ''}>
@@ -1401,12 +1408,12 @@
 
         function renderNewEntryForm() {
             newEntryForm.reset();
-            imagePreviewsContainer.innerHTML = ''; // Clear previous previews
+            imagePreviewsContainer.innerHTML = ''; 
             imageUploadLabel.classList.remove('hidden');
             datePromptMessage.classList.add('hidden');
             entryDateInput.value = formatDate(new Date());
             
-            appState.newEntrySelectedFiles = []; // Reset selected files
+            appState.newEntrySelectedFiles = []; 
             appState.currentTags = []; 
             appState.aiSuggestedTags = []; 
             _renderTagBar(tagBar, 'custom-tag-input', appState.currentTags, appState.aiSuggestedTags, handleAddCustomTagForNewEntry, handleRemoveSelectedTagForNewEntry, handleSelectSuggestedTagForNewEntry);
@@ -1415,9 +1422,8 @@
             entryUploadLoader.classList.add('hidden');
         }
         
-        // --- New Entry Image Preview Handling ---
         function renderNewEntryImagePreviews() {
-            imagePreviewsContainer.innerHTML = ''; // Clear existing previews
+            imagePreviewsContainer.innerHTML = ''; 
             if (appState.newEntrySelectedFiles.length > 0) {
                 imageUploadLabel.classList.add('hidden');
             } else {
@@ -1435,12 +1441,11 @@
                     `;
                     previewItem.querySelector('.remove-preview-btn').onclick = () => {
                         appState.newEntrySelectedFiles.splice(index, 1);
-                        renderNewEntryImagePreviews(); // Re-render previews
-                        // If all files removed, re-evaluate AI tags (e.g., clear them or re-predict if needed)
+                        renderNewEntryImagePreviews(); 
                         if(appState.newEntrySelectedFiles.length === 0) {
                              appState.aiSuggestedTags = [];
                              _renderTagBar(tagBar, 'custom-tag-input', appState.currentTags, appState.aiSuggestedTags, handleAddCustomTagForNewEntry, handleRemoveSelectedTagForNewEntry, handleSelectSuggestedTagForNewEntry);
-                        } else if (index === 0) { // If the first image was removed, re-predict
+                        } else if (index === 0) { 
                             processFirstImageForNewEntry();
                         }
                     };
@@ -1456,7 +1461,6 @@
                 const reader = new FileReader();
                 reader.onload = async (event) => {
                     const firstImageDataURL = event.target.result;
-                    // EXIF data for the first image
                     EXIF.getData(firstFile, function() {
                         let exifDateFound = false;
                         const dto = EXIF.getTag(this, "DateTimeOriginal");
@@ -1473,7 +1477,6 @@
                         datePromptMessage.classList.toggle('hidden', exifDateFound);
                         if (!exifDateFound) datePromptMessage.textContent = 'No date in first image. Set manually or use today.';
                     });
-                    // AI Tags for the first image
                     const predictedTags = await predictTagsForImage(firstImageDataURL);
                     appState.aiSuggestedTags = predictedTags.filter(pt => !appState.currentTags.includes(pt));
                     _renderTagBar(tagBar, 'custom-tag-input', appState.currentTags, appState.aiSuggestedTags, handleAddCustomTagForNewEntry, handleRemoveSelectedTagForNewEntry, handleSelectSuggestedTagForNewEntry);
@@ -1486,27 +1489,25 @@
             }
         }
 
-
-        // --- Edit Entry Form Rendering ---
         function renderEditEntryForm(entry) {
-            appState.editingEntryOriginal = JSON.parse(JSON.stringify(entry)); // Deep copy
-            appState.editEntryExistingImageUrls = [...(entry.image_urls || [])];
+            appState.editingEntryOriginal = JSON.parse(JSON.stringify(entry)); 
+            const existingUrls = getSanitizedImageUrls(entry);
+            appState.editEntryExistingImageUrls = [...existingUrls];
             appState.editEntryFilesToAdd = [];
 
             editExistingImagesContainer.innerHTML = '';
             editNewImagePreviewsContainer.innerHTML = '';
 
-            // Render existing images
             appState.editEntryExistingImageUrls.forEach((url, index) => {
                 const previewItem = document.createElement('div');
-                previewItem.className = 'image-preview-item'; // Re-use class for consistency
+                previewItem.className = 'image-preview-item'; 
                 previewItem.innerHTML = `
                     <img src="${url}" alt="Existing image ${index + 1}">
                     <button type="button" class="remove-preview-btn" data-url="${url}" title="Remove image">×</button>
                 `;
                 previewItem.querySelector('.remove-preview-btn').onclick = () => {
                     appState.editEntryExistingImageUrls = appState.editEntryExistingImageUrls.filter(imgUrl => imgUrl !== url);
-                    previewItem.remove(); // Remove from DOM
+                    previewItem.remove(); 
                 };
                 editExistingImagesContainer.appendChild(previewItem);
             });
@@ -1514,14 +1515,13 @@
             document.getElementById('edit-entry-date').value = formatDate(entry.date);
             document.getElementById('edit-entry-title').value = entry.title;
             document.getElementById('edit-entry-notes').value = entry.notes || '';
-            appState.currentTags = [...(entry.tags || [])]; // Reset for edit view
+            appState.currentTags = [...(entry.tags || [])]; 
             _renderTagBar(editTagBarEl, 'edit-custom-tag-input', appState.currentTags, [], handleAddCustomTagForEditEntry, handleRemoveSelectedTagForEditEntry, () => {});
             document.getElementById('edit-upload-loader').classList.add('hidden');
         }
 
-        // --- Edit Entry New Image Previews ---
         function renderEditEntryNewImagePreviews() {
-            editNewImagePreviewsContainer.innerHTML = ''; // Clear existing new previews
+            editNewImagePreviewsContainer.innerHTML = ''; 
             appState.editEntryFilesToAdd.forEach((file, index) => {
                 const reader = new FileReader();
                 reader.onload = (e) => {
@@ -1533,7 +1533,7 @@
                     `;
                     previewItem.querySelector('.remove-preview-btn').onclick = () => {
                         appState.editEntryFilesToAdd.splice(index, 1);
-                        renderEditEntryNewImagePreviews(); // Re-render new previews
+                        renderEditEntryNewImagePreviews(); 
                     };
                     editNewImagePreviewsContainer.appendChild(previewItem);
                 };
@@ -1541,17 +1541,17 @@
             });
         }
 
-
-        // --- Entry Detail View Rendering ---
         function renderEntryDetailView(entry) {
-            if (!entry || !entry.image_urls || entry.image_urls.length === 0) {
-                detailImage.src = ''; // Or a placeholder
+            const entryImageUrls = getSanitizedImageUrls(entry);
+
+            if (!entry || entryImageUrls.length === 0) {
+                detailImage.src = ''; 
                 detailImage.alt = 'No image available';
                 detailImage.style.cursor = 'default';
                 detailImage.onclick = null;
                 detailThumbnailsContainer.innerHTML = '';
             } else {
-                appState.currentDetailImageIndex = 0; // Reset to first image
+                appState.currentDetailImageIndex = 0; 
                 displayDetailImage(entry, appState.currentDetailImageIndex);
             }
 
@@ -1581,18 +1581,26 @@
         }
 
         function displayDetailImage(entry, index) {
-            if (!entry.image_urls || index < 0 || index >= entry.image_urls.length) return;
+            const entryImageUrls = getSanitizedImageUrls(entry);
+            if (entryImageUrls.length === 0 || index < 0 || index >= entryImageUrls.length) {
+                // Fallback if somehow called with invalid index or no images after initial check
+                detailImage.src = ''; 
+                detailImage.alt = 'No image available';
+                detailImage.style.cursor = 'default';
+                detailImage.onclick = null;
+                detailThumbnailsContainer.innerHTML = '';
+                return;
+            }
 
             appState.currentDetailImageIndex = index;
-            const currentImageUrl = entry.image_urls[index];
+            const currentImageUrl = entryImageUrls[index];
             detailImage.src = currentImageUrl;
             detailImage.alt = `${entry.title} - Image ${index + 1}`;
             detailImage.style.cursor = 'zoom-in';
             detailImage.onclick = () => openLightbox(currentImageUrl);
 
-            // Render thumbnails
             detailThumbnailsContainer.innerHTML = '';
-            entry.image_urls.forEach((url, i) => {
+            entryImageUrls.forEach((url, i) => {
                 const thumb = document.createElement('img');
                 thumb.src = url;
                 thumb.alt = `Thumbnail ${i + 1}`;
@@ -1624,36 +1632,25 @@
         }
 
         async function fetchEntriesByTag(tagName) {
-            console.log(`Fetching entries for tag: "${tagName}" for user: ${appState.currentUser.id}`);
             try {
                 const { data: userCollectionObjects, error: collectionError } = await supabaseClient
                     .from('collections')
                     .select('id')
                     .eq('user_id', appState.currentUser.id);
 
-                if (collectionError) {
-                    console.error('Error fetching user collections for tag search:', collectionError);
-                    throw collectionError;
-                }
-
-                if (!userCollectionObjects || userCollectionObjects.length === 0) {
-                    console.log('User has no collections, so no tagged entries can be found.');
-                    return []; 
-                }
+                if (collectionError) throw collectionError;
+                if (!userCollectionObjects || userCollectionObjects.length === 0) return []; 
 
                 const userCollectionIds = userCollectionObjects.map(c => c.id);
                 
                 const { data: entries, error: entriesError } = await supabaseClient
                     .from('entries')
-                    .select('*') // Selects all columns, including image_urls
+                    .select('*') 
                     .in('collection_id', userCollectionIds) 
                     .contains('tags', [tagName])        
                     .order('date', { ascending: false }); 
 
-                if (entriesError) {
-                    console.error('Supabase error fetching entries by tag and collections:', entriesError);
-                    throw entriesError;
-                }
+                if (entriesError) throw entriesError;
                 return entries || [];
             } catch (error) {
                 console.error(`Error in fetchEntriesByTag for tag "${tagName}":`, error);
@@ -1694,7 +1691,8 @@
                         badgeHTML = `<span class="days-since-badge">Same day</span>`;
                     }
                 }
-                const firstImageUrl = (entry.image_urls && entry.image_urls.length > 0) ? entry.image_urls[0] : '';
+                const entryImageUrls = getSanitizedImageUrls(entry);
+                const firstImageUrl = entryImageUrls.length > 0 ? entryImageUrls[0] : '';
                 
                 tile.innerHTML = `
                     <img src="${firstImageUrl}" alt="${entry.title}" class="grid-entry-image" ${!firstImageUrl ? 'style="background-color: #eee;"' : ''}>
@@ -1705,16 +1703,15 @@
                 tile.onclick = async () => {
                     appState.activeEntryId = entry.id;
                     appState.activeCollectionId = entry.collection_id; 
-                    // Need to load entries for the specific collection if navigating from tagged view
                     appState.activeEntries = await loadEntries(entry.collection_id); 
-                    renderEntryDetailView(entry); // Pass the specific entry data
+                    const fullEntryData = appState.activeEntries.find(e => e.id === entry.id) || entry; // Prefer fresh load
+                    renderEntryDetailView(fullEntryData); 
                     navigateTo('entryDetail');
                 };
                 container.appendChild(tile); 
             });
         }
 
-        // Lightbox Functions
         function applyLightboxZoom() {
             lightboxImage.style.transform = `scale(${currentLightboxZoomScale})`;
             if (currentLightboxZoomScale > 1) {
@@ -1727,6 +1724,7 @@
         }
 
         function openLightbox(imageUrl) {
+            if (!imageUrl) return; // Don't open if no URL
             lightboxImage.src = imageUrl;
             currentLightboxZoomScale = 1;
             applyLightboxZoom(); 
@@ -1771,10 +1769,10 @@
         // --- Event Handlers ---
         loginForm.onsubmit = async (e) => {
             e.preventDefault(); loginError.classList.add('hidden'); loginError.textContent = '';
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-password').value;
+            const emailVal = document.getElementById('login-email').value;
+            const passwordVal = document.getElementById('login-password').value;
             try {
-                const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+                const { error } = await supabaseClient.auth.signInWithPassword({ email: emailVal, password: passwordVal });
                 if (error) throw error;
                 await checkAuth();
             } catch (error) { loginError.textContent = error.message; loginError.classList.remove('hidden'); }
@@ -1782,16 +1780,17 @@
 
         signupForm.onsubmit = async (e) => {
             e.preventDefault(); signupError.classList.add('hidden'); signupError.textContent = '';
-            const username = document.getElementById('username').value;
-            const phone = document.getElementById('phone').value;
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
+            const usernameVal = document.getElementById('username').value;
+            const phoneVal = document.getElementById('phone').value;
+            const emailVal = document.getElementById('email').value;
+            const passwordVal = document.getElementById('password').value;
             try {
-                const { data: authData, error: authError } = await supabaseClient.auth.signUp({ email, password });
+                const { data: authData, error: authError } = await supabaseClient.auth.signUp({ email: emailVal, password: passwordVal });
                 if (authError) throw authError;
                 if (authData.user) {
-                    const { error: profileError } = await supabaseClient.from('profiles').insert({ id: authData.user.id, username, phone });
+                    const { error: profileError } = await supabaseClient.from('profiles').insert({ id: authData.user.id, username: usernameVal, phone: phoneVal });
                     if (profileError) console.error('Profile creation error:', profileError);
+                    // Check if session is immediately available (auto-confirm might be on)
                     if (authData.session) { await checkAuth(); } 
                     else { 
                         signupError.textContent = 'Account created! Please check your email to confirm and then log in.';
@@ -1827,11 +1826,10 @@
         document.getElementById('add-entry-fab').onclick = () => { renderNewEntryForm(); navigateTo('newEntry'); };
         document.getElementById('back-to-timeline-btn').onclick = () => { appState.activeCollectionId ? renderCollectionTimelineView() : navigateTo('home'); };
 
-        // New Entry Image Upload Handler
         imageUploadInput.onchange = e => {
-            appState.newEntrySelectedFiles = Array.from(e.target.files); // Store FileList as an array
+            appState.newEntrySelectedFiles = Array.from(e.target.files); 
             renderNewEntryImagePreviews();
-            processFirstImageForNewEntry(); // For EXIF and AI tags of the first image
+            processFirstImageForNewEntry(); 
         };
 
         document.getElementById('add-custom-tag-btn').onclick = handleAddCustomTagForNewEntry;
@@ -1848,8 +1846,8 @@
             try {
                 const uploadedImageUrls = [];
                 for (const file of appState.newEntrySelectedFiles) {
-                    const imageUrl = await uploadImage(file, appState.currentUser.id);
-                    uploadedImageUrls.push(imageUrl);
+                    const url = await uploadImage(file, appState.currentUser.id); // Corrected from imageUrl to url
+                    uploadedImageUrls.push(url);
                 }
 
                 const entryData = { 
@@ -1857,18 +1855,17 @@
                     title: document.getElementById('entry-title').value, 
                     notes: document.getElementById('entry-notes').value, 
                     date: entryDateInput.value, 
-                    image_urls: uploadedImageUrls, // Save array of URLs
+                    image_urls: uploadedImageUrls, 
                     tags: appState.currentTags.filter(Boolean) 
                 };
                 const { error } = await supabaseClient.from('entries').insert(entryData).select().single();
                 if (error) throw error;
                 
-                // Reset new entry form state
                 appState.newEntrySelectedFiles = [];
                 imagePreviewsContainer.innerHTML = '';
                 imageUploadLabel.classList.remove('hidden');
 
-                await renderCollectionTimelineView(); // This will navigate to collectionTimeline
+                await renderCollectionTimelineView(); 
             } catch (error) { 
                 console.error('Error in entry creation process:', error); 
                 alert(`Error creating entry: ${error.message}`);
@@ -1893,7 +1890,7 @@
                     navigateTo('home');
                 }
             } else {
-                navigateTo('home');
+                 appState.activeCollectionId ? renderCollectionTimelineView() : navigateTo('home');
             }
         };
 
@@ -1902,7 +1899,6 @@
             const col = appState.collections.find(c => c.id === appState.activeCollectionId);
             if (!col || !confirm(`Delete collection "${col.name}" and ALL its entries? This cannot be undone.`)) return;
             try {
-                 // Consider deleting images from storage if needed, though this can be complex
                 const { error: entriesError } = await supabaseClient.from('entries').delete().eq('collection_id', appState.activeCollectionId);
                 if (entriesError) throw entriesError;
 
@@ -1916,7 +1912,6 @@
         document.getElementById('delete-entry-btn').onclick = async () => {
             if (!appState.activeEntryId || !confirm("Are you sure you want to delete this entry?")) return;
             try {
-                // Consider deleting images from storage here as well
                 const { error } = await supabaseClient.from('entries').delete().eq('id', appState.activeEntryId);
                 if (error) throw error;
                 appState.activeEntryId = null; await renderCollectionTimelineView();
@@ -1936,7 +1931,6 @@
             else { renderCollectionTimelineView(); }
         };
 
-        // Edit Entry: Handle adding more images
         editAddMoreImagesInput.onchange = (e) => {
             appState.editEntryFilesToAdd = Array.from(e.target.files);
             renderEditEntryNewImagePreviews();
@@ -1954,13 +1948,11 @@
 
             try {
                 const newUploadedImageUrls = [];
-                // Upload any newly added files
                 for (const file of appState.editEntryFilesToAdd) {
-                    const imageUrl = await uploadImage(file, appState.currentUser.id);
-                    newUploadedImageUrls.push(imageUrl);
+                    const url = await uploadImage(file, appState.currentUser.id); // Corrected from imageUrl to url
+                    newUploadedImageUrls.push(url);
                 }
 
-                // Combine existing (kept) URLs with newly uploaded URLs
                 const finalImageUrls = [...appState.editEntryExistingImageUrls, ...newUploadedImageUrls];
 
                 const updatedEntryData = { 
@@ -1968,7 +1960,7 @@
                     notes: document.getElementById('edit-entry-notes').value, 
                     date: document.getElementById('edit-entry-date').value, 
                     tags: appState.currentTags.filter(Boolean),
-                    image_urls: finalImageUrls // Updated array of URLs
+                    image_urls: finalImageUrls 
                 };
 
                 const { error } = await supabaseClient
@@ -1978,8 +1970,6 @@
 
                 if (error) throw error;
                 
-                // Important: After successful update, fetch the updated list of entries for the current collection
-                // to ensure appState.activeEntries is fresh before rendering detail or timeline.
                 appState.activeEntries = await loadEntries(appState.activeCollectionId); 
                 const updatedEntry = appState.activeEntries.find(entry => entry.id === appState.activeEntryId);
 
@@ -1987,7 +1977,6 @@
                     renderEntryDetailView(updatedEntry); 
                     navigateTo('entryDetail'); 
                 } else { 
-                    // Should not happen if update was successful and entry still exists
                     renderCollectionTimelineView(); 
                 }
             } catch (error) { 
@@ -1996,9 +1985,8 @@
             } finally { 
                 editLoader.classList.add('hidden'); 
                 saveBtn.disabled = false; 
-                // Reset edit form state
                 appState.editEntryFilesToAdd = [];
-                appState.editEntryExistingImageUrls = [];
+                appState.editEntryExistingImageUrls = []; // Should be reset from original entry on next edit
                 editNewImagePreviewsContainer.innerHTML = '';
             }
         };
