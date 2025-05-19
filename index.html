@@ -758,7 +758,7 @@
         </div>
 
         <!-- Signup View -->
-        <div id="signup-view" class="view">
+        <div id="signup-view" class="view"> <!-- Initially visible by default -->
             <form id="signup-form">
                 <img src="https://wgjxmpahcfhzgflcnlib.supabase.co/storage/v1/object/public/entry-images/Icon/evoly%20icon.png" alt="Evoly Logo" class="auth-logo">
                 <p>Track your journeys, one photo at a time.</p>
@@ -1014,8 +1014,6 @@
             currentDetailImageIndex: 0,
         };
 
-        // const views = { /* ... same as before ... */ }; // OLD LINE
-        // CORRECTED INITIALIZATION FOR THE 'views' OBJECT:
         const views = {
             login: null,
             signup: null,
@@ -1028,7 +1026,6 @@
             taggedEntries: null
         };
         
-        // (Initialize all view consts as before)
         const loginForm = document.getElementById('login-form');
         const signupForm = document.getElementById('signup-form');
         const newCollectionForm = document.getElementById('new-collection-form');
@@ -1058,9 +1055,9 @@
         const detailTagsContainer = document.getElementById('detail-tags');
         const detailMetadata = document.getElementById('detail-metadata');
         const loginError = document.getElementById('login-error');
-        const loginInfo = document.getElementById('login-info'); // Added for info messages
+        const loginInfo = document.getElementById('login-info');
         const signupError = document.getElementById('signup-error');
-        const signupSuccess = document.getElementById('signup-success'); // Added for success messages
+        const signupSuccess = document.getElementById('signup-success');
         const editExistingImagesContainer = document.getElementById('edit-existing-images-container');
         const editAddMoreImagesInput = document.getElementById('edit-add-more-images-input');
         const editNewImagePreviewsContainer = document.getElementById('edit-new-image-previews-container');
@@ -1071,13 +1068,11 @@
         const lightboxZoomInBtn = document.getElementById('lightbox-zoom-in');
         const lightboxZoomOutBtn = document.getElementById('lightbox-zoom-out');
         
-        // This loop will now correctly populate the 'views' object using its keys.
         Object.keys(views).forEach(viewKey => { 
             const viewElement = document.getElementById(viewKey + '-view');
             if (viewElement) {
                 views[viewKey] = viewElement;
             } else {
-                // This console warning helps if a view ID in HTML doesn't match a key in the `views` object.
                 console.warn(`View element not found for key: ${viewKey} (expected ID: ${viewKey}-view)`);
             }
         });
@@ -1086,7 +1081,7 @@
         let currentLightboxZoomScale = 1;
         const LIGHTBOX_ZOOM_STEP = 0.2, LIGHTBOX_MIN_ZOOM = 0.4, LIGHTBOX_MAX_ZOOM = 5;   
 
-        function getSanitizedImageUrls(entry) { /* ... same as before ... */ 
+        function getSanitizedImageUrls(entry) { 
             if (!entry || !entry.image_urls) return [];
             if (Array.isArray(entry.image_urls)) return entry.image_urls;
             if (typeof entry.image_urls === 'string') {
@@ -1100,7 +1095,7 @@
             }
             return [];
         }
-        function navigateTo(viewId) { /* ... same as before ... */ 
+        function navigateTo(viewId) { 
             appState.currentView = viewId;
             Object.keys(views).forEach(id => {
                 if (views[id]) views[id].classList.add('hidden');
@@ -1110,14 +1105,14 @@
             }
             window.scrollTo(0, 0);
         }
-        function formatDate(dateStrOrObj) { /* ... same as before ... */ 
+        function formatDate(dateStrOrObj) { 
             const date = new Date(dateStrOrObj);
             const year = date.getFullYear();
             const month = String(date.getMonth() + 1).padStart(2, '0');
             const day = String(date.getDate()).padStart(2, '0');
             return `${year}-${month}-${day}`;
         }
-        function daysBetween(d1Str, d2Str) { /* ... same as before ... */ 
+        function daysBetween(d1Str, d2Str) { 
             if (!d1Str || !d2Str) return null;
             const d1 = new Date(d1Str);
             const d2 = new Date(d2Str);
@@ -1133,93 +1128,122 @@
                 .select('username, phone')
                 .eq('id', userId)
                 .single();
-            if (error && error.code !== 'PGRST116') { // PGRST116 = 0 rows, not necessarily an error if profile is optional
+            if (error && error.code !== 'PGRST116') { 
                 console.error('Error fetching profile:', error);
             }
             return profile;
         }
 
         async function handleUserSession(user) {
-            appState.currentUser = user;
+            appState.currentUser = user; // Ensure appState.currentUser is up-to-date
             const profile = await fetchUserProfile(user.id);
             if (profile) {
+                // Ensure profile data is merged into appState.currentUser, not replacing it entirely
+                // if 'user' object already has more up-to-date auth info.
                 appState.currentUser.username = profile.username;
                 appState.currentUser.phone = profile.phone;
             }
             await loadCollections();
             renderHomeView();
             navigateTo('home');
-            // Clear hash from URL after processing
             if (window.location.hash) {
                 history.pushState("", document.title, window.location.pathname + window.location.search);
             }
         }
 
-        // Listen for auth state changes (login, logout, token refresh, redirect from email link)
         supabaseClient.auth.onAuthStateChange(async (event, session) => {
             console.log('Auth event:', event, session);
+
             if (event === 'SIGNED_IN' && session?.user) {
-                if (session.user.email_confirmed_at || !session.user.email_confirmed_at && !isEmailConfirmationRequiredForUser(session.user)) { // Added a hypothetical check
+                appState.currentUser = session.user; // Update appState's user immediately
+                if (session.user.email_confirmed_at) {
                     await handleUserSession(session.user);
-                } else if (!session.user.email_confirmed_at) {
-                    // User is signed in but email not confirmed.
-                    // This case might happen if they sign up, then try to log in before confirming.
-                    // Or if they clicked the link but something didn't fully update their local state.
-                    console.log("User signed in, but email not confirmed. Displaying info message.");
-                    if (appState.currentView === 'login') {
-                         loginInfo.textContent = "Please check your email to verify your account before full access.";
-                         loginInfo.classList.remove('hidden');
-                         loginError.classList.add('hidden');
+                } else {
+                    console.log("User signed in, but email not confirmed.");
+                    if (appState.currentView !== 'login') {
+                        navigateTo('login'); 
                     }
-                    // We might not navigate away from login/signup here to let them see the message.
-                    // Or, if they just verified, a refresh or `getUser` call might soon update `email_confirmed_at`.
+                    loginInfo.textContent = "Please check your email to verify your account before full access.";
+                    loginInfo.classList.remove('hidden');
+                    loginError.classList.add('hidden');
                 }
             } else if (event === 'SIGNED_OUT') {
                 appState.currentUser = null;
                 navigateTo('login');
             } else if (event === 'USER_UPDATED' && session?.user) {
-                // This might fire after email confirmation if the user object is updated
-                if (session.user.email_confirmed_at && appState.currentUser?.id === session.user.id && !appState.currentUser.email_confirmed_at) {
-                    console.log("Email confirmed for existing user session.");
-                    await handleUserSession(session.user); // Re-process to ensure navigation to home
+                const userJustConfirmedEmail = appState.currentUser &&
+                                               appState.currentUser.id === session.user.id &&
+                                               !appState.currentUser.email_confirmed_at &&
+                                               session.user.email_confirmed_at;
+
+                // Always update appState.currentUser with the latest session user data
+                if (appState.currentUser && appState.currentUser.id === session.user.id) {
+                    appState.currentUser = { ...appState.currentUser, ...session.user };
                 } else {
-                    appState.currentUser = session.user; // Update current user with any changes
+                    appState.currentUser = session.user;
                 }
-            }
-            // Initial check for user when app loads
-            if (event === 'INITIAL_SESSION' && session?.user) {
-                 if (session.user.email_confirmed_at || !isEmailConfirmationRequiredForUser(session.user)) {
-                    await handleUserSession(session.user);
+
+                if (userJustConfirmedEmail) {
+                    console.log("Email confirmed for existing user session via USER_UPDATED.");
+                    await handleUserSession(appState.currentUser); // Use the updated appState.currentUser
                 } else {
-                    console.log("Initial session, but email not confirmed. User should verify.");
-                     if (appState.currentView !== 'home' ) { // Don't show on home if they somehow got there
-                        navigateTo('login');
+                    console.log("User updated. Data in appState refreshed.");
+                    // Optionally, re-render parts of the current view if they depend on user data
+                    // For example, if username displayed in header changed.
+                }
+            } else if (event === 'INITIAL_SESSION') {
+                if (session?.user) {
+                    appState.currentUser = session.user; // Set current user
+                    if (session.user.email_confirmed_at) {
+                        await handleUserSession(session.user);
+                    } else {
+                        console.log("Initial session, email not confirmed.");
+                        if (appState.currentView !== 'login') {
+                            navigateTo('login');
+                        }
                         loginInfo.textContent = "Please check your email to complete verification.";
                         loginInfo.classList.remove('hidden');
-                     }
-                }
-            } else if (event === 'INITIAL_SESSION' && !session) {
-                 // No user on initial load, determine view based on URL or default to signup/login
-                if (!window.location.hash.includes('access_token')) { // Don't navigate if tokens are in hash (being processed)
-                    navigateTo('signup');
+                        loginError.classList.add('hidden');
+                    }
+                } else { // No user session on initial load
+                    appState.currentUser = null;
+                    if (window.location.hash.includes('access_token')) {
+                        // Supabase JS is handling a magic link or OAuth redirect.
+                        // It will fire another auth event like 'SIGNED_IN' or 'USER_UPDATED'.
+                        console.log("Access token in hash, Supabase JS will handle.");
+                    } else if (window.location.hash.includes('error_description')) {
+                        const params = new URLSearchParams(window.location.hash.substring(1));
+                        const errorDescription = params.get('error_description');
+                        navigateTo('login');
+                        loginError.textContent = `Authentication error: ${errorDescription}. Please try again.`;
+                        loginError.classList.remove('hidden');
+                        history.pushState("", document.title, window.location.pathname + window.location.search);
+                    } else {
+                        // No active session, not an auth callback. Default to signup page.
+                        // HTML initially shows signup-view, appState.currentView is 'signup'.
+                        // navigateTo('signup') ensures consistency if other logic tried to change view.
+                        if (appState.currentView === 'login' && views.login && !views.login.classList.contains('hidden')) {
+                            navigateTo('login'); // If login page is somehow already visible, stay
+                        } else {
+                            navigateTo('signup'); // Default
+                        }
+                    }
                 }
             }
         });
         
-        // Hypothetical function to check if confirmation is actually required by Supabase settings
-        // In a real app, you'd know this from your Supabase config (Secure email change ON/OFF)
         function isEmailConfirmationRequiredForUser(user) {
-            // This is a placeholder. Supabase's "Enable email confirmations" setting applies globally.
-            // If it's ON, new signups will require it.
-            // If "Secure email change" is ON, email changes will require it.
-            // For simplicity, we assume if `email_confirmed_at` is missing, it's required for new users.
-            return !user.email_confirmed_at; // A basic check
+             return !user.email_confirmed_at; 
         }
 
 
-        async function loadCollections() { /* ... same as before ... */ 
+        async function loadCollections() { 
             collectionsLoading.classList.remove('hidden');
+            noCollectionsMessage.classList.add('hidden'); // Hide message while loading
             try {
+                if (!appState.currentUser) { // Guard against calling when no user
+                    appState.collections = []; return;
+                }
                 const { data: collections, error } = await supabaseClient
                     .from('collections')
                     .select('*')
@@ -1230,29 +1254,37 @@
                 appState.collections = collections || [];
                 
                 for (const collection of appState.collections) {
-                    const { count } = await supabaseClient
+                    const { count, error: countError } = await supabaseClient
                         .from('entries')
                         .select('*', { count: 'exact', head: true })
                         .eq('collection_id', collection.id);
+                    if(countError) console.warn("Error fetching entry count for collection", collection.id, countError);
                     collection.entryCount = count || 0;
                     
-                    const { data: lastEntry } = await supabaseClient
+                    const { data: lastEntry, error: lastEntryError } = await supabaseClient
                         .from('entries')
                         .select('date')
                         .eq('collection_id', collection.id)
                         .order('date', { ascending: false })
                         .limit(1)
                         .single();
+                    if(lastEntryError && lastEntryError.code !== 'PGRST116') console.warn("Error fetching last entry date for collection", collection.id, lastEntryError);
                     collection.lastEntryDate = lastEntry?.date;
                 }
             } catch (error) {
                 console.error('Error loading collections:', error);
+                appState.collections = []; // Reset on error
             } finally {
                 collectionsLoading.classList.add('hidden');
+                // Toggle message visibility based on actual collection count after loading
+                if (views.home && !views.home.classList.contains('hidden')) { // Only if home view is active
+                    noCollectionsMessage.classList.toggle('hidden', appState.collections.length > 0);
+                }
             }
         }
-        async function loadEntries(collectionId) { /* ... same as before ... */ 
+        async function loadEntries(collectionId) { 
             entriesLoading.classList.remove('hidden');
+            noEntriesMessage.classList.add('hidden');
             try {
                 const { data: entries, error } = await supabaseClient
                     .from('entries')
@@ -1267,11 +1299,16 @@
                 return [];
             } finally {
                 entriesLoading.classList.add('hidden');
+                 // Toggle message visibility based on actual entry count after loading
+                if (views.collectionTimeline && !views.collectionTimeline.classList.contains('hidden')) {
+                    const currentEntries = appState.activeEntries || []; // Use appState.activeEntries if available
+                    noEntriesMessage.classList.toggle('hidden', currentEntries.length > 0);
+                }
             }
         }
-        async function uploadImage(file, userId) { /* ... same as before ... */ 
+        async function uploadImage(file, userId) { 
              const fileExt = file.name.split('.').pop();
-            const fileName = `${userId}/${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`; // Added randomness
+            const fileName = `${userId}/${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`; 
             
             const { data, error } = await supabaseClient.storage
                 .from('entry-images')
@@ -1284,9 +1321,12 @@
                 .getPublicUrl(fileName);
             return publicUrl;
         }
-        async function predictTagsForImage(imgDataURL) { /* ... same as before ... */ 
-             if (!GOOGLE_CLOUD_VISION_API_KEY || GOOGLE_CLOUD_VISION_API_KEY === 'YOUR_GOOGLE_CLOUD_VISION_API_KEY_HERE') {
-                console.warn("Google Cloud Vision API key not configured. Skipping tag prediction.");
+        async function predictTagsForImage(imgDataURL) { 
+             if (!GOOGLE_CLOUD_VISION_API_KEY || GOOGLE_CLOUD_VISION_API_KEY === 'YOUR_GOOGLE_CLOUD_VISION_API_KEY_HERE' || GOOGLE_CLOUD_VISION_API_KEY === 'AIzaSyDB9lq0UssbbXndJrwVL-TEaplkbPOmk4w') { // Keep the actual key if it's intended for testing
+                console.warn("Google Cloud Vision API key not configured or placeholder. Skipping tag prediction.");
+                 if (GOOGLE_CLOUD_VISION_API_KEY === 'AIzaSyDB9lq0UssbbXndJrwVL-TEaplkbPOmk4w') {
+                    console.warn("Using placeholder Vision API Key. Predictions might fail or be limited.");
+                 }
                 return [];
             }
             imageProcessingLoader.classList.remove('hidden');
@@ -1349,13 +1389,12 @@
                 collectionsContainer.appendChild(card);
             });
         }
-        async function renderCollectionTimelineView() { /* ... same as before, uses getSanitizedImageUrls ... */ 
+        async function renderCollectionTimelineView() { 
             const collection = appState.collections.find(c => c.id === appState.activeCollectionId);
             if (!collection) { console.error("Collection not found"); navigateTo('home'); return; }
             collectionTitleTimeline.textContent = collection.name;
             entriesTimelineContainer.innerHTML = '';
-            appState.activeEntries = await loadEntries(collection.id); 
-            noEntriesMessage.classList.toggle('hidden', appState.activeEntries.length > 0);
+            appState.activeEntries = await loadEntries(collection.id); // This now correctly hides/shows noEntriesMessage
             
             appState.activeEntries.forEach((entry, idx) => {
                 const tile = document.createElement('div');
@@ -1394,7 +1433,7 @@
             });
             navigateTo('collectionTimeline');
         }
-        function _renderTagBar(barElement, inputId, selectedTags, suggestedTags, addCustomFn, removeSelectedFn, selectSuggestedFn) { /* ... same as before ... */ 
+        function _renderTagBar(barElement, inputId, selectedTags, suggestedTags, addCustomFn, removeSelectedFn, selectSuggestedFn) { 
             const customInputEl = barElement.querySelector(`#${inputId}`);
             const customVal = customInputEl ? customInputEl.value : '';
             barElement.innerHTML = '';
@@ -1426,7 +1465,7 @@
             newCustomInput.value = customVal;
             barElement.appendChild(newCustomInput);
         }
-        function handleAddCustomTagForNewEntry() { /* ... same as before ... */ 
+        function handleAddCustomTagForNewEntry() { 
              const input = tagBar.querySelector('#custom-tag-input');
             const tag = input.value.trim();
             if (tag && !appState.currentTags.includes(tag)) {
@@ -1436,18 +1475,18 @@
             input.value = '';
             _renderTagBar(tagBar, 'custom-tag-input', appState.currentTags, appState.aiSuggestedTags, handleAddCustomTagForNewEntry, handleRemoveSelectedTagForNewEntry, handleSelectSuggestedTagForNewEntry);
         }
-        function handleRemoveSelectedTagForNewEntry(tagToRemove) { /* ... same as before ... */ 
+        function handleRemoveSelectedTagForNewEntry(tagToRemove) { 
             appState.currentTags = appState.currentTags.filter(t => t !== tagToRemove);
             _renderTagBar(tagBar, 'custom-tag-input', appState.currentTags, appState.aiSuggestedTags, handleAddCustomTagForNewEntry, handleRemoveSelectedTagForNewEntry, handleSelectSuggestedTagForNewEntry);
         }
-        function handleSelectSuggestedTagForNewEntry(tagToSelect) { /* ... same as before ... */ 
+        function handleSelectSuggestedTagForNewEntry(tagToSelect) { 
             if (!appState.currentTags.includes(tagToSelect)) {
                 appState.currentTags.push(tagToSelect);
             }
             appState.aiSuggestedTags = appState.aiSuggestedTags.filter(t => t !== tagToSelect);
             _renderTagBar(tagBar, 'custom-tag-input', appState.currentTags, appState.aiSuggestedTags, handleAddCustomTagForNewEntry, handleRemoveSelectedTagForNewEntry, handleSelectSuggestedTagForNewEntry);
         }
-        function handleAddCustomTagForEditEntry() { /* ... same as before ... */ 
+        function handleAddCustomTagForEditEntry() { 
             const input = editTagBarEl.querySelector('#edit-custom-tag-input');
             const tag = input.value.trim();
             if (tag && !appState.currentTags.includes(tag)) {
@@ -1456,11 +1495,11 @@
             input.value = '';
             _renderTagBar(editTagBarEl, 'edit-custom-tag-input', appState.currentTags, [], handleAddCustomTagForEditEntry, handleRemoveSelectedTagForEditEntry, () => {});
         }
-        function handleRemoveSelectedTagForEditEntry(tagToRemove) { /* ... same as before ... */ 
+        function handleRemoveSelectedTagForEditEntry(tagToRemove) { 
              appState.currentTags = appState.currentTags.filter(t => t !== tagToRemove);
             _renderTagBar(editTagBarEl, 'edit-custom-tag-input', appState.currentTags, [], handleAddCustomTagForEditEntry, handleRemoveSelectedTagForEditEntry, () => {});
         }
-        function renderNewEntryForm() { /* ... same as before ... */ 
+        function renderNewEntryForm() { 
             newEntryForm.reset();
             imagePreviewsContainer.innerHTML = ''; 
             imageUploadLabel.classList.remove('hidden');
@@ -1475,7 +1514,7 @@
             imageProcessingLoader.classList.add('hidden');
             entryUploadLoader.classList.add('hidden');
         }
-        function renderNewEntryImagePreviews() { /* ... same as before ... */ 
+        function renderNewEntryImagePreviews() { 
             imagePreviewsContainer.innerHTML = ''; 
             if (appState.newEntrySelectedFiles.length > 0) {
                 imageUploadLabel.classList.add('hidden');
@@ -1507,7 +1546,7 @@
                 reader.readAsDataURL(file);
             });
         }
-        async function processFirstImageForNewEntry() { /* ... same as before ... */ 
+        async function processFirstImageForNewEntry() { 
             if (appState.newEntrySelectedFiles.length > 0) {
                 const firstFile = appState.newEntrySelectedFiles[0];
                 const reader = new FileReader();
@@ -1540,7 +1579,7 @@
                  _renderTagBar(tagBar, 'custom-tag-input', appState.currentTags, appState.aiSuggestedTags, handleAddCustomTagForNewEntry, handleRemoveSelectedTagForNewEntry, handleSelectSuggestedTagForNewEntry);
             }
         }
-        function renderEditEntryForm(entry) { /* ... same as before, uses getSanitizedImageUrls ... */ 
+        function renderEditEntryForm(entry) { 
             appState.editingEntryOriginal = JSON.parse(JSON.stringify(entry)); 
             const existingUrls = getSanitizedImageUrls(entry);
             appState.editEntryExistingImageUrls = [...existingUrls];
@@ -1570,7 +1609,7 @@
             _renderTagBar(editTagBarEl, 'edit-custom-tag-input', appState.currentTags, [], handleAddCustomTagForEditEntry, handleRemoveSelectedTagForEditEntry, () => {});
             document.getElementById('edit-upload-loader').classList.add('hidden');
         }
-        function renderEditEntryNewImagePreviews() { /* ... same as before ... */ 
+        function renderEditEntryNewImagePreviews() { 
             editNewImagePreviewsContainer.innerHTML = ''; 
             appState.editEntryFilesToAdd.forEach((file, index) => {
                 const reader = new FileReader();
@@ -1590,7 +1629,7 @@
                 reader.readAsDataURL(file);
             });
         }
-        function renderEntryDetailView(entry) { /* ... same as before, uses getSanitizedImageUrls ... */ 
+        function renderEntryDetailView(entry) { 
              const entryImageUrls = getSanitizedImageUrls(entry);
 
             if (!entry || entryImageUrls.length === 0) {
@@ -1628,7 +1667,7 @@
                 if (idx < appState.activeEntries.length - 1) { appState.activeEntryId = appState.activeEntries[idx + 1].id; renderEntryDetailView(appState.activeEntries[idx + 1]); }
             };
         }
-        function displayDetailImage(entry, index) { /* ... same as before, uses getSanitizedImageUrls ... */ 
+        function displayDetailImage(entry, index) { 
             const entryImageUrls = getSanitizedImageUrls(entry);
             if (entryImageUrls.length === 0 || index < 0 || index >= entryImageUrls.length) {
                 detailImage.src = ''; 
@@ -1659,7 +1698,7 @@
                 detailThumbnailsContainer.appendChild(thumb);
             });
         }
-        async function handleTagClick(tagName) { /* ... same as before ... */ 
+        async function handleTagClick(tagName) { 
             appState.currentTagName = tagName;
             appState.viewBeforeTagSearch = appState.currentView; 
             appState.entryIdBeforeTagSearch = appState.activeEntryId;
@@ -1672,11 +1711,12 @@
 
             const entries = await fetchEntriesByTag(tagName);
             appState.taggedEntries = entries; 
-            renderTaggedEntriesView(tagName, entries);
+            renderTaggedEntriesView(tagName, entries); // This will also handle no-tagged-entries message
             document.getElementById('tagged-entries-loading').classList.add('hidden');
         }
-        async function fetchEntriesByTag(tagName) { /* ... same as before ... */ 
+        async function fetchEntriesByTag(tagName) { 
             try {
+                 if (!appState.currentUser) return []; // Guard if no user
                 const { data: userCollectionObjects, error: collectionError } = await supabaseClient
                     .from('collections')
                     .select('id')
@@ -1698,21 +1738,19 @@
                 return entries || [];
             } catch (error) {
                 console.error(`Error in fetchEntriesByTag for tag "${tagName}":`, error);
-                const noTaggedMsg = document.getElementById('no-tagged-entries-message');
-                noTaggedMsg.textContent = `Error loading entries. Please check console.`;
-                noTaggedMsg.classList.remove('hidden');
-                return [];
+                // Message display will be handled by renderTaggedEntriesView
+                return []; // Return empty on error to allow UI to show "no entries" or error
             }
         }
-        function renderTaggedEntriesView(tagName, entries) { /* ... same as before, uses getSanitizedImageUrls ... */ 
+        function renderTaggedEntriesView(tagName, entries) { 
             document.getElementById('tagged-entries-title').textContent = `Entries tagged: "${tagName}"`;
             const container = document.getElementById('tagged-entries-container');
             container.innerHTML = ''; 
 
             const noTaggedMsg = document.getElementById('no-tagged-entries-message');
             noTaggedMsg.classList.toggle('hidden', entries.length > 0);
-            if (entries.length === 0 && !noTaggedMsg.textContent.startsWith("Error")) { 
-                 noTaggedMsg.textContent = 'No entries found with this tag.';
+            if (entries.length === 0) { 
+                 noTaggedMsg.textContent = 'No entries found with this tag.'; // Default message
             }
 
             entries.forEach((entry, idx) => { 
@@ -1746,6 +1784,7 @@
                 tile.onclick = async () => {
                     appState.activeEntryId = entry.id;
                     appState.activeCollectionId = entry.collection_id; 
+                    // Important: Load entries for the collection of the clicked tagged entry
                     appState.activeEntries = await loadEntries(entry.collection_id); 
                     const fullEntryData = appState.activeEntries.find(e => e.id === entry.id) || entry; 
                     renderEntryDetailView(fullEntryData); 
@@ -1754,7 +1793,7 @@
                 container.appendChild(tile); 
             });
         }
-        function applyLightboxZoom() { /* ... same as before ... */ 
+        function applyLightboxZoom() { 
             lightboxImage.style.transform = `scale(${currentLightboxZoomScale})`;
             if (currentLightboxZoomScale > 1) {
                 lightboxContent.style.cursor = 'grab'; 
@@ -1764,7 +1803,7 @@
                 lightboxContent.style.overflow = 'hidden';
             }
         }
-        function openLightbox(imageUrl) { /* ... same as before ... */ 
+        function openLightbox(imageUrl) { 
              if (!imageUrl) return; 
             lightboxImage.src = imageUrl;
             currentLightboxZoomScale = 1;
@@ -1773,7 +1812,7 @@
             document.body.style.overflow = 'hidden'; 
             document.addEventListener('keydown', handleLightboxEscKey);
         }
-        function closeLightbox() { /* ... same as before ... */ 
+        function closeLightbox() { 
             lightboxOverlay.classList.add('hidden');
             lightboxImage.src = '#'; 
             document.body.style.overflow = ''; 
@@ -1783,14 +1822,14 @@
             lightboxContent.scrollLeft = 0;
         }
         function handleLightboxEscKey(event) { if (event.key === 'Escape') closeLightbox(); }
-        function zoomInLightbox() { /* ... same as before ... */ 
+        function zoomInLightbox() { 
             if (currentLightboxZoomScale < LIGHTBOX_MAX_ZOOM) {
                 currentLightboxZoomScale += LIGHTBOX_ZOOM_STEP;
                 if (currentLightboxZoomScale > LIGHTBOX_MAX_ZOOM) currentLightboxZoomScale = LIGHTBOX_MAX_ZOOM;
             }
             applyLightboxZoom();
         }
-        function zoomOutLightbox() { /* ... same as before ... */ 
+        function zoomOutLightbox() { 
             if (currentLightboxZoomScale > LIGHTBOX_MIN_ZOOM) {
                 currentLightboxZoomScale -= LIGHTBOX_ZOOM_STEP;
                 if (currentLightboxZoomScale < LIGHTBOX_MIN_ZOOM) currentLightboxZoomScale = LIGHTBOX_MIN_ZOOM;
@@ -1810,17 +1849,22 @@
                     password: passwordVal 
                 });
                 if (error) {
-                    // Check for specific error related to unconfirmed email
                     if (error.message.toLowerCase().includes('email not confirmed')) {
                         loginInfo.textContent = "Please check your email to verify your account before logging in.";
                         loginInfo.classList.remove('hidden');
-                    } else {
-                        throw error; // Rethrow other errors
+                        // onAuthStateChange will also handle this if a user object is returned despite the error
+                    } else if (error.message.toLowerCase().includes('invalid login credentials')) {
+                         loginError.textContent = "Invalid email or password.";
+                         loginError.classList.remove('hidden');
+                    }
+                    else {
+                        throw error; 
                     }
                 }
-                // onAuthStateChange will handle successful login and navigation
+                // If no error, or "email not confirmed" error, onAuthStateChange will handle the session/user.
             } catch (error) { 
-                loginError.textContent = error.message; 
+                console.error("Login submit error:", error);
+                loginError.textContent = error.message || "An unexpected error occurred during login."; 
                 loginError.classList.remove('hidden'); 
             }
         };
@@ -1834,48 +1878,34 @@
             const emailVal = document.getElementById('email').value;
             const passwordVal = document.getElementById('password').value;
             try {
-                // If "Enable email confirmations" is ON in Supabase, `data.session` will be null here.
-                // The user object will be returned but they are not yet authenticated.
                 const { data: authResponse, error: authError } = await supabaseClient.auth.signUp({ 
                     email: emailVal, 
                     password: passwordVal,
-                    options: {
-                        data: { // This data is available in email templates via {{ .Data.username }}
-                            username: usernameVal,
-                            // phone: phoneVal // You can add phone here if needed in email template
-                        }
-                    }
+                    options: { data: { username: usernameVal } }
                 });
 
                 if (authError) throw authError;
 
                 if (authResponse.user) {
-                    // Insert profile immediately, regardless of confirmation status
                     const { error: profileError } = await supabaseClient
                         .from('profiles')
                         .insert({ id: authResponse.user.id, username: usernameVal, phone: phoneVal });
                     if (profileError) {
-                        // Log profile error but don't necessarily block the "check email" message
                         console.error('Profile creation error after signup:', profileError);
                     }
 
-                    // Check if email confirmation is required by Supabase (it should be if enabled)
-                    // `authResponse.session` will be null if confirmation is required
                     if (!authResponse.session && authResponse.user.identities && authResponse.user.identities.length > 0) {
                          signupSuccess.textContent = 'Account created! Please check your email to verify your account.';
                          signupSuccess.classList.remove('hidden');
-                         signupForm.reset(); // Clear the form
+                         signupForm.reset(); 
                     } else if (authResponse.session) {
-                        // This case means auto-confirmation might be on, or some other flow
+                        console.log("Signup successful with immediate session (auto-confirmation likely on).");
                         // onAuthStateChange will handle it.
-                        console.log("Signup successful with immediate session.");
                     } else {
-                         // Fallback message if user object exists but no session and no clear indication of email sent
-                         signupSuccess.textContent = 'Account created. Follow any instructions sent to your email.';
+                         signupSuccess.textContent = 'Account created. Follow instructions sent to your email.';
                          signupSuccess.classList.remove('hidden');
                     }
                 } else {
-                    // Should not happen if no error, but as a fallback
                     signupError.textContent = "Signup failed. Please try again.";
                     signupError.classList.remove('hidden');
                 }
@@ -1885,18 +1915,20 @@
             }
         };
 
-        document.getElementById('sign-out-btn').onclick = async () => { /* ... same as before ... */ 
+        document.getElementById('sign-out-btn').onclick = async () => { 
             if (confirm("Are you sure you want to sign out?")) {
-                await supabaseClient.auth.signOut();
+                const { error } = await supabaseClient.auth.signOut();
+                if (error) console.error("Sign out error:", error);
                 // onAuthStateChange will handle navigation to login
             }
         };
         document.getElementById('new-collection-btn-home').onclick = () => { document.getElementById('collection-name').value = ''; navigateTo('newCollectionModal'); };
         document.getElementById('cancel-new-collection-btn').onclick = () => navigateTo('home');
-        newCollectionForm.onsubmit = async (e) => { /* ... same as before ... */ 
+        newCollectionForm.onsubmit = async (e) => { 
              e.preventDefault();
             try {
-                const { error } = await supabaseClient.from('collections').insert({ name: document.getElementById('collection-name').value, user_id: appState.currentUser.id }).select().single();
+                 if (!appState.currentUser) { alert("You must be logged in to create a collection."); return; }
+                const { data, error } = await supabaseClient.from('collections').insert({ name: document.getElementById('collection-name').value, user_id: appState.currentUser.id }).select().single();
                 if (error) throw error;
                 await loadCollections(); renderHomeView(); navigateTo('home');
             } catch (error) { console.error('Error creating collection:', error); alert('Error creating collection.'); }
@@ -1904,18 +1936,19 @@
         document.getElementById('back-to-home-btn').onclick = () => navigateTo('home');
         document.getElementById('add-entry-fab').onclick = () => { renderNewEntryForm(); navigateTo('newEntry'); };
         document.getElementById('back-to-timeline-btn').onclick = () => { appState.activeCollectionId ? renderCollectionTimelineView() : navigateTo('home'); };
-        imageUploadInput.onchange = e => { /* ... same as before ... */ 
+        imageUploadInput.onchange = e => { 
             appState.newEntrySelectedFiles = Array.from(e.target.files); 
             renderNewEntryImagePreviews();
             processFirstImageForNewEntry(); 
         };
         document.getElementById('add-custom-tag-btn').onclick = handleAddCustomTagForNewEntry;
         tagBar.addEventListener('keypress', e => { if (e.target.id === 'custom-tag-input' && e.key === 'Enter') { e.preventDefault(); handleAddCustomTagForNewEntry(); }});
-        newEntryForm.onsubmit = async (e) => { /* ... same as before ... */ 
+        newEntryForm.onsubmit = async (e) => { 
             e.preventDefault(); 
             if (appState.newEntrySelectedFiles.length === 0) { 
                 alert("Please select at least one image."); return; 
             }
+            if (!appState.currentUser) { alert("You must be logged in."); return; }
             entryUploadLoader.classList.remove('hidden'); 
             document.getElementById('create-entry-btn').disabled = true;
             
@@ -1951,7 +1984,7 @@
             }
         };
         document.getElementById('back-to-timeline-from-detail-btn').onclick = () => { appState.activeCollectionId ? renderCollectionTimelineView() : navigateTo('home'); };
-        document.getElementById('back-from-tagged-view-btn').onclick = async () => { /* ... same as before ... */ 
+        document.getElementById('back-from-tagged-view-btn').onclick = async () => { 
             if (appState.viewBeforeTagSearch === 'entryDetail' && appState.entryIdBeforeTagSearch && appState.collectionIdForEntryBeforeTagSearch) {
                 appState.activeEntryId = appState.entryIdBeforeTagSearch;
                 appState.activeCollectionId = appState.collectionIdForEntryBeforeTagSearch;
@@ -1961,13 +1994,16 @@
                     renderEntryDetailView(originalEntry);
                     navigateTo('entryDetail');
                 } else {
-                    navigateTo('home');
+                    navigateTo('home'); // Fallback
                 }
-            } else {
-                 appState.activeCollectionId ? renderCollectionTimelineView() : navigateTo('home');
+            } else if (appState.activeCollectionId) { // If a collection was active (e.g., came from timeline)
+                 renderCollectionTimelineView();
+            } 
+             else { // General fallback
+                 navigateTo('home');
             }
         };
-        document.getElementById('delete-collection-btn').onclick = async () => { /* ... same as before ... */ 
+        document.getElementById('delete-collection-btn').onclick = async () => { 
             const col = appState.collections.find(c => c.id === appState.activeCollectionId);
             if (!col || !confirm(`Delete collection "${col.name}" and ALL its entries? This cannot be undone.`)) return;
             try {
@@ -1980,7 +2016,7 @@
                 appState.activeCollectionId = null; await loadCollections(); renderHomeView(); navigateTo('home');
             } catch (error) { console.error('Error deleting collection:', error); alert('Error deleting collection.'); }
         };
-        document.getElementById('delete-entry-btn').onclick = async () => { /* ... same as before ... */ 
+        document.getElementById('delete-entry-btn').onclick = async () => { 
              if (!appState.activeEntryId || !confirm("Are you sure you want to delete this entry?")) return;
             try {
                 const { error } = await supabaseClient.from('entries').delete().eq('id', appState.activeEntryId);
@@ -1996,22 +2032,22 @@
             signupError.classList.add('hidden'); signupSuccess.classList.add('hidden');
             navigateTo('login'); 
         };
-        document.getElementById('edit-entry-btn').onclick = () => { /* ... same as before ... */ 
+        document.getElementById('edit-entry-btn').onclick = () => { 
              const entry = appState.activeEntries.find(e => e.id === appState.activeEntryId);
             if (entry) { renderEditEntryForm(entry); navigateTo('editEntry'); }
         };
-        document.getElementById('back-to-detail-btn').onclick = () => { /* ... same as before ... */ 
-            const entry = appState.activeEntries.find(e => e.id === appState.activeEntryId) || appState.editingEntryOriginal;
+        document.getElementById('back-to-detail-btn').onclick = () => { 
+            const entry = appState.editingEntryOriginal || appState.activeEntries.find(e => e.id === appState.activeEntryId);
             if (entry) { renderEntryDetailView(entry); navigateTo('entryDetail'); } 
-            else { renderCollectionTimelineView(); }
+            else { renderCollectionTimelineView(); } // Fallback
         };
-        editAddMoreImagesInput.onchange = (e) => { /* ... same as before ... */ 
+        editAddMoreImagesInput.onchange = (e) => { 
             appState.editEntryFilesToAdd = Array.from(e.target.files);
             renderEditEntryNewImagePreviews();
         };
         document.getElementById('edit-add-custom-tag-btn').onclick = handleAddCustomTagForEditEntry;
         editTagBarEl.addEventListener('keypress', e => { if (e.target.id === 'edit-custom-tag-input' && e.key === 'Enter') { e.preventDefault(); handleAddCustomTagForEditEntry(); }});
-        editEntryForm.onsubmit = async (e) => { /* ... same as before ... */ 
+        editEntryForm.onsubmit = async (e) => { 
             e.preventDefault();
             const editLoader = document.getElementById('edit-upload-loader'); 
             const saveBtn = document.getElementById('save-entry-btn');
@@ -2019,6 +2055,7 @@
             saveBtn.disabled = true;
 
             try {
+                 if (!appState.currentUser) { alert("You must be logged in."); throw new Error("User not logged in"); }
                 const newUploadedImageUrls = [];
                 for (const file of appState.editEntryFilesToAdd) {
                     const url = await uploadImage(file, appState.currentUser.id); 
@@ -2042,6 +2079,7 @@
 
                 if (error) throw error;
                 
+                // Reload entries for the current collection to get the updated one
                 appState.activeEntries = await loadEntries(appState.activeCollectionId); 
                 const updatedEntry = appState.activeEntries.find(entry => entry.id === appState.activeEntryId);
 
@@ -2049,22 +2087,21 @@
                     renderEntryDetailView(updatedEntry); 
                     navigateTo('entryDetail'); 
                 } else { 
+                    console.warn("Updated entry not found after saving, returning to timeline.");
                     renderCollectionTimelineView(); 
                 }
             } catch (error) { 
                 console.error('Error updating entry:', error); 
-                alert('Error updating entry.');
+                alert('Error updating entry: ' + error.message);
             } finally { 
                 editLoader.classList.add('hidden'); 
                 saveBtn.disabled = false; 
                 appState.editEntryFilesToAdd = [];
-                // appState.editEntryExistingImageUrls = []; // No! This is reset when renderEditEntryForm is called.
                 editNewImagePreviewsContainer.innerHTML = '';
             }
         };
 
         let touchstartX = 0, touchendX = 0;
-        // The views object is now populated correctly before this point.
         const entryDetailViewEl = views.entryDetail; 
         if (entryDetailViewEl) { 
             function handleSwipe() {
@@ -2075,17 +2112,12 @@
             entryDetailViewEl.addEventListener('touchstart', e => { touchstartX = e.changedTouches[0].screenX; }, {passive: true});
             entryDetailViewEl.addEventListener('touchend', e => { touchendX = e.changedTouches[0].screenX; handleSwipe(); }, {passive: true});
         } else {
-            console.warn("#entry-detail-view not found for swipe listeners. This might happen if 'views.entryDetail' is not correctly populated.");
+            console.warn("#entry-detail-view not found for swipe listeners.");
         }
 
-
-        // DOMContentLoaded is used to ensure onAuthStateChange is set up early,
-        // but most of the UI logic (like initial navigation) will be handled by onAuthStateChange itself.
         document.addEventListener('DOMContentLoaded', () => { 
-            console.log("DOM fully loaded and parsed. Supabase client initialized.");
-            // onAuthStateChange will handle initial session and navigation.
-            // No explicit navigateTo() here unless it's a fallback for no auth state.
-
+            console.log("DOM fully loaded. Supabase client initialized. Auth listeners active.");
+            
             lightboxCloseBtn.addEventListener('click', closeLightbox);
             lightboxZoomInBtn.addEventListener('click', zoomInLightbox);
             lightboxZoomOutBtn.addEventListener('click', zoomOutLightbox);
