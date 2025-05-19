@@ -362,10 +362,6 @@
             word-break: break-word; 
         }
         
-        /* .grid-entry-info .tag-chips {
-            margin-top: auto; 
-        } */
-        
         .tag-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 0px; } 
         .tag-chip {
             background-color: var(--secondary-button-bg); 
@@ -484,7 +480,12 @@
             border-radius: var(--border-radius-main);
             overflow: hidden;
         }
-        #entry-detail-view #detail-image { max-width: 100%; max-height: 100%; object-fit: contain; }
+        #entry-detail-view #detail-image { 
+            max-width: 100%; 
+            max-height: 100%; 
+            object-fit: contain; 
+            /* cursor will be set by JS if lightbox is enabled */
+        }
         #entry-detail-view #detail-content { padding: 0 10px; }
         #entry-detail-view #detail-content h2 { 
             margin-top: 0; 
@@ -587,6 +588,80 @@
             margin-left: auto;
             margin-right: auto;
             border: 1px solid var(--card-border);
+        }
+
+        /* Lightbox Styles */
+        #lightbox-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            display: flex; /* For centering lightbox-content */
+            align-items: center;
+            justify-content: center;
+            z-index: 2000; 
+            padding: 15px; /* Some padding around the lightbox content area */
+            box-sizing: border-box;
+        }
+
+        #lightbox-content {
+            position: relative; /* For positioning controls if they were inside */
+            max-width: 95vw;    /* Max viewport width for the image container */
+            max-height: 95vh;   /* Max viewport height for the image container */
+            display: flex;      /* For centering the image itself if it's smaller than container */
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;   /* Initially hidden, JS changes to 'auto' for panning when zoomed */
+            background-color: #111; /* Optional: dark bg for the image area itself */
+            border-radius: var(--border-radius-small);
+        }
+
+        #lightbox-image {
+            display: block;
+            /* Fit within lightbox-content while maintaining aspect ratio */
+            max-width: 100%; 
+            max-height: 100%;
+            object-fit: contain; 
+            transition: transform 0.2s ease-out;
+            transform-origin: center center; /* Zoom from the center */
+        }
+
+        #lightbox-controls {
+            position: absolute; /* Position relative to lightbox-overlay */
+            top: 20px;          /* Adjust as needed */
+            right: 20px;         /* Adjust as needed */
+            display: flex;
+            flex-direction: column; /* Stack buttons vertically */
+            gap: 12px;
+            z-index: 2001; /* Ensure controls are above lightbox-content if it has a bg */
+        }
+
+        .lightbox-control-btn {
+            background-color: rgba(40, 40, 40, 0.65);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            padding: 0; /* Remove default button padding */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .lightbox-control-btn svg {
+            width: 22px; 
+            height: 22px;
+            pointer-events: none; /* Ensure clicks on SVG pass to button */
+        }
+
+        .lightbox-control-btn:hover {
+            background-color: rgba(70, 70, 70, 0.85);
         }
     </style>
 </head>
@@ -810,7 +885,32 @@
             <div id="tagged-entries-loading" class="loader hidden"></div>
         </div>
 
+    </div> <!-- End of app-container -->
+
+    <!-- Lightbox Structure -->
+    <div id="lightbox-overlay" class="hidden">
+        <div id="lightbox-content">
+            <img id="lightbox-image" src="#" alt="Lightbox image">
+        </div>
+        <div id="lightbox-controls">
+            <button id="lightbox-zoom-in" title="Zoom In" class="lightbox-control-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M8 0a1 1 0 0 1 1 1v6h6a1 1 0 1 1 0 2H9v6a1 1 0 1 1-2 0V9H1a1 1 0 0 1 0-2h6V1a1 1 0 0 1 1-1z"/>
+                </svg>
+            </button>
+            <button id="lightbox-zoom-out" title="Zoom Out" class="lightbox-control-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M0 8a1 1 0 0 1 1-1h14a1 1 0 1 1 0 2H1a1 1 0 0 1-1-1z"/>
+                </svg>
+            </button>
+            <button id="lightbox-close" title="Close" class="lightbox-control-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
+                </svg>
+            </button>
+        </div>
     </div>
+
 
     <script>
         // Configuration - Replace these with your values
@@ -887,6 +987,19 @@
         const detailMetadata = document.getElementById('detail-metadata');
         const loginError = document.getElementById('login-error');
         const signupError = document.getElementById('signup-error');
+
+        // Lightbox Elements
+        const lightboxOverlay = document.getElementById('lightbox-overlay');
+        const lightboxContent = document.getElementById('lightbox-content');
+        const lightboxImage = document.getElementById('lightbox-image');
+        const lightboxCloseBtn = document.getElementById('lightbox-close');
+        const lightboxZoomInBtn = document.getElementById('lightbox-zoom-in');
+        const lightboxZoomOutBtn = document.getElementById('lightbox-zoom-out');
+
+        let currentLightboxZoomScale = 1;
+        const LIGHTBOX_ZOOM_STEP = 0.2; 
+        const LIGHTBOX_MIN_ZOOM = 0.4; 
+        const LIGHTBOX_MAX_ZOOM = 5;   
 
         // Navigation function
         function navigateTo(viewId) {
@@ -1120,7 +1233,6 @@
                     <div class="grid-entry-info">
                         ${badgeHTML}
                         <h3 class="grid-entry-title">${entry.title}</h3>
-                        <!-- Tags removed from grid view -->
                     </div>`;
                 tile.onclick = () => {
                     appState.activeEntryId = entry.id;
@@ -1132,7 +1244,6 @@
             navigateTo('collectionTimeline');
         }
         
-        // --- Tag Bar UI for New/Edit Entry ---
         function _renderTagBar(barElement, inputId, selectedTags, suggestedTags, addCustomFn, removeSelectedFn, selectSuggestedFn) {
             const customInputEl = barElement.querySelector(`#${inputId}`);
             const customVal = customInputEl ? customInputEl.value : '';
@@ -1166,7 +1277,6 @@
             barElement.appendChild(newCustomInput);
         }
 
-        // Handlers for New Entry Tag Bar
         function handleAddCustomTagForNewEntry() {
             const input = tagBar.querySelector('#custom-tag-input');
             const tag = input.value.trim();
@@ -1189,7 +1299,6 @@
             _renderTagBar(tagBar, 'custom-tag-input', appState.currentTags, appState.aiSuggestedTags, handleAddCustomTagForNewEntry, handleRemoveSelectedTagForNewEntry, handleSelectSuggestedTagForNewEntry);
         }
 
-        // Handlers for Edit Entry Tag Bar
         function handleAddCustomTagForEditEntry() {
             const input = editTagBarEl.querySelector('#edit-custom-tag-input');
             const tag = input.value.trim();
@@ -1257,9 +1366,14 @@
             document.getElementById('next-entry-btn').onclick = () => {
                 if (idx < appState.activeEntries.length - 1) { appState.activeEntryId = appState.activeEntries[idx + 1].id; renderEntryDetailView(appState.activeEntries[idx + 1]); }
             };
+
+            // Lightbox functionality for the detail image
+            detailImage.style.cursor = 'zoom-in';
+            detailImage.onclick = () => {
+                openLightbox(entry.image_url);
+            };
         }
 
-        // --- Tagged Entries Functions ---
         async function handleTagClick(tagName) {
             appState.currentTagName = tagName;
             appState.viewBeforeTagSearch = appState.currentView; 
@@ -1303,7 +1417,7 @@
                     .select('*')
                     .in('collection_id', userCollectionIds) 
                     .contains('tags', [tagName])        
-                    .order('date', { ascending: false }); // Newest first
+                    .order('date', { ascending: false }); 
 
                 if (entriesError) {
                     console.error('Supabase error fetching entries by tag and collections:', entriesError);
@@ -1320,7 +1434,7 @@
             }
         }
 
-        function renderTaggedEntriesView(tagName, entries) { // entries are newest first
+        function renderTaggedEntriesView(tagName, entries) { 
             document.getElementById('tagged-entries-title').textContent = `Entries tagged: "${tagName}"`;
             const container = document.getElementById('tagged-entries-container');
             container.innerHTML = ''; 
@@ -1356,7 +1470,6 @@
                     <div class="grid-entry-info">
                         ${badgeHTML}
                         <h3 class="grid-entry-title">${entry.title}</h3>
-                        <!-- Tags removed from grid view -->
                     </div>`;
                 tile.onclick = async () => {
                     appState.activeEntryId = entry.id;
@@ -1367,6 +1480,59 @@
                 };
                 container.appendChild(tile); 
             });
+        }
+
+        // Lightbox Functions
+        function applyLightboxZoom() {
+            lightboxImage.style.transform = `scale(${currentLightboxZoomScale})`;
+            if (currentLightboxZoomScale > 1) {
+                lightboxContent.style.cursor = 'grab'; 
+                lightboxContent.style.overflow = 'auto';
+            } else {
+                lightboxContent.style.cursor = 'default';
+                lightboxContent.style.overflow = 'hidden';
+            }
+        }
+
+        function openLightbox(imageUrl) {
+            lightboxImage.src = imageUrl;
+            currentLightboxZoomScale = 1;
+            applyLightboxZoom(); 
+            lightboxOverlay.classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; 
+            document.addEventListener('keydown', handleLightboxEscKey);
+        }
+
+        function closeLightbox() {
+            lightboxOverlay.classList.add('hidden');
+            lightboxImage.src = '#'; 
+            document.body.style.overflow = ''; 
+            document.removeEventListener('keydown', handleLightboxEscKey);
+            lightboxContent.style.cursor = 'default';
+            lightboxContent.scrollTop = 0;
+            lightboxContent.scrollLeft = 0;
+        }
+
+        function handleLightboxEscKey(event) {
+            if (event.key === 'Escape') {
+                closeLightbox();
+            }
+        }
+
+        function zoomInLightbox() {
+            if (currentLightboxZoomScale < LIGHTBOX_MAX_ZOOM) {
+                currentLightboxZoomScale += LIGHTBOX_ZOOM_STEP;
+                if (currentLightboxZoomScale > LIGHTBOX_MAX_ZOOM) currentLightboxZoomScale = LIGHTBOX_MAX_ZOOM;
+            }
+            applyLightboxZoom();
+        }
+
+        function zoomOutLightbox() {
+            if (currentLightboxZoomScale > LIGHTBOX_MIN_ZOOM) {
+                currentLightboxZoomScale -= LIGHTBOX_ZOOM_STEP;
+                if (currentLightboxZoomScale < LIGHTBOX_MIN_ZOOM) currentLightboxZoomScale = LIGHTBOX_MIN_ZOOM;
+            }
+            applyLightboxZoom();
         }
 
 
@@ -1568,8 +1734,20 @@
         entryDetailViewEl.addEventListener('touchstart', e => { touchstartX = e.changedTouches[0].screenX; }, {passive: true});
         entryDetailViewEl.addEventListener('touchend', e => { touchendX = e.changedTouches[0].screenX; handleSwipe(); }, {passive: true});
 
-        document.addEventListener('DOMContentLoaded', async () => { await checkAuth(); });
+        document.addEventListener('DOMContentLoaded', async () => { 
+            await checkAuth(); 
+
+            // Lightbox control event listeners
+            lightboxCloseBtn.addEventListener('click', closeLightbox);
+            lightboxZoomInBtn.addEventListener('click', zoomInLightbox);
+            lightboxZoomOutBtn.addEventListener('click', zoomOutLightbox);
+            lightboxOverlay.addEventListener('click', (event) => {
+                // Close if clicked on the overlay itself, not its children (image, controls)
+                if (event.target === lightboxOverlay) {
+                    closeLightbox();
+                }
+            });
+        });
     </script>
 </body>
 </html>
-
