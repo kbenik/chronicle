@@ -1308,9 +1308,9 @@
                 imageProcessingLoader.classList.add('hidden');
             }
         }
-        function renderHomeView() { /* ... same as before ... */ 
-             if (!appState.currentUser) { navigateTo('signup'); return; } // Should be caught by onAuthStateChange
-            greetingEl.textContent = `Welcome, ${appState.currentUser.username || appState.currentUser.email.split('@')[0]}!`;
+        function renderHomeView() {
+            if (!appState.currentUser) { navigateTo('signup'); return; }
+            greetingEl.textContent = `Welcome!`; 
             collectionsContainer.innerHTML = '';
             noCollectionsMessage.classList.toggle('hidden', appState.collections.length > 0);
             appState.collections.forEach(col => {
