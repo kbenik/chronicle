@@ -97,6 +97,7 @@
                 <button class="back-button" id="back-to-home-btn">< Home</button>
                 <h2 id="collection-title-timeline">Collection Timeline</h2>
                 <div class="header-actions">
+                    <button id="generate-public-link-btn" class="secondary" title="Make this collection public and copy link" style="margin-right: 10px;">Share Publicly</button>
                     <button id="delete-collection-btn" class="icon-button danger-icon" title="Delete Collection">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-trash3" viewBox="0 0 16 16">
                             <path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5M11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1zm-1 .722L9.78 14H6.22L5.5 3.222zM7.5 5.5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5m3 0a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5"/>
@@ -157,6 +158,20 @@
                 <div id="entry-upload-loader" class="loader hidden"></div>
             </form>
         </div>
+        <!-- Add this new view div somewhere with the other views -->
+        <div id="public-collection-view" class="view hidden">
+            <header>
+                <img src="https://wgjxmpahcfhzgflcnlib.supabase.co/storage/v1/object/public/entry-images/Icon/evoly%20icon%20small.png" alt="Evoly Small Icon" class="header-app-icon">
+                    <h2 id="public-collection-title">Public Collection</h2>
+            </header>
+            <div id="public-entries-container">
+            <!-- Entries will be rendered here by JS -->
+            </div>
+                    <p id="public-no-entries-message" class="text-center my-2 hidden">No entries in this public collection.</p>
+                        <div id="public-entries-loading" class="loader hidden"></div>
+                            <p class="text-center my-2" style="font-size: 0.9em; color: var(--text-secondary);"> Viewing a public collection from Evoly. <a href="/" id="back-to-app-link" style="color: var(--primary-accent);">Go to App</a>.
+                            </p>
+            </div>
 
         <!-- Entry Detail View -->
         <div id="entry-detail-view" class="view hidden">
