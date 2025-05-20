@@ -1319,7 +1319,41 @@ if (generatePublicLinkBtn) {
             alert("Cannot generate link. Please ensure you are logged in and viewing a collection.");
             return;
         }
+try {
+                    console.log("Share button: Attempting to update collection in DB..."); // CHECK THIS LOG
+                    const { data, error }('Error making collection public (see console for details): ' + error.message); // Let user know
+                        // = await supabaseClient
+                        .from('collections')
+                        .update({ is_public: true })
+                         throw error; // Optionally re-throw if you want the outer catch to also log it
+                        return; // Stop.eq('id', appState.activeCollectionId)
+                        .eq('user_id', appState. if there's a DB error
+                    }
+                    if (!data) { // If no error, but alsocurrentUser.id) // Security check: only owner can update
+                        .select('name') // To confirm which collection no data (e.g., .single() found 0 rows matching criteria)
+                        console.error("Share was updated and get its name
+                        .single(); // Expecting one row to be updated and returned
+                    console. button: No data returned from DB update. RLS might have prevented update or no matching row found. User might not belog("Share button: DB Update response:", { data, error }); // CHECK THIS LOG
 
+                    if (error) { // the owner or collection ID is wrong.");
+                        alert("Could not update collection. You might not be the owner, or the collection CHECK IF THIS BLOCK IS HIT
+                        console.error("Share button: DB update error object:", JSON.stringify( doesn't exist.");
+                        return;
+                    }
+                    console.log("Share button: Collection made public:",error, null, 2));
+                        throw error; // This will be caught by the outer catch
+                    }
+ data.name); // Should see this if successful
+
+                    // ... rest of the logic (link construction, clipboard,                    if (!data) { // CHECK IF THIS BLOCK IS HIT
+                        // This case occurs if .single() expects button text update) ...
+
+                } catch (error) { // Catch other unexpected errors during the try block
+                     a row but RLS prevents the update/select,
+                        // or if the .eq conditions don't matchconsole.error('Share button: UNEXPECTED error generating public link:', error.message, error);
+                    alert(' any row.
+                        console.error("Share button: No data returned from DB update. Collection not found or user notAn unexpected error occurred while making the collection public: ' + error.message);
+                }
         try {
             // 1. Update the collection to be public
             const { data, error } = await supabaseClient
