@@ -31,6 +31,10 @@ const appState = {
     entryIdBeforeTagSearch: null,
     collectionIdForEntryBeforeTagSearch: null,
     currentDetailImageIndex: 0,
+
+    isViewingPublicLink: false,
+    publicCollectionData: null,
+    publicEntries: [],
 };
 
 // View Elements (IDs must match HTML)
@@ -44,6 +48,7 @@ const views = {
     entryDetail: document.getElementById('entry-detail-view'),
     editEntry: document.getElementById('edit-entry-view'),
     taggedEntries: document.getElementById('tagged-entries-view'),
+    publicCollection: document.getElementById('public-collection-view'),
 };
 
 // Form Elements
@@ -145,6 +150,19 @@ function daysBetween(d1Str, d2Str) {
 }
 
 async function checkAuth() {
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const publicCollectionId = urlParams.get('publicCollectionId');
+
+    if (publicCollectionId) {
+        appState.isViewingPublicLink = true;
+        // Prevent normal auth flow from redirecting if not logged in
+        // No need to call supabaseClient.auth.getUser() here for public view
+        await displayPublicCollection(publicCollectionId);
+        return; // Stop further auth processing for public links
+    }
+    appState.isViewingPublicLink = false; // Ensure it's reset if not a public link
+    
     try {
         const { data: { user } } = await supabaseClient.auth.getUser();
         if (user) {
@@ -169,6 +187,182 @@ async function checkAuth() {
     } catch (error) {
         console.error('Auth check error:', error);
         navigateTo('signup');
+    }
+}
+
+async function displayPublicCollection(collectionId) {
+    const publicCollectionTitleEl = document.getElementById('public-collection-title');
+    const publicEntriesContainerEl = document.getElementById('public-entries-container');
+    const publicNoEntriesMessageEl = document.getElementById('public-no-entries-message');
+    const publicEntriesLoadingEl = document.getElementById('public-entries-loading');
+
+    publicEntriesLoadingEl.classList.remove('hidden');
+    publicEntriesContainerEl.innerHTML = '';
+    navigateTo('publicCollection');
+
+    try {
+        // Fetch public collection details (Supabase client uses 'anon' role if not logged in)
+        const { data: collection, error: collectionError } = await supabaseClient
+            .from('collections')
+            .select('id, name, is_public') // Only select what's needed
+            .eq('id', collectionId)
+            .eq('is_public', true) // Crucial check
+            .single();
+
+        if (collectionError || !collection) {
+            console.error('Error fetching public collection or collection not public/found:', collectionError);
+            publicCollectionTitleEl.textContent = 'Collection Not Found';
+            publicNoEntriesMessageEl.textContent = 'This collection is not public or does not exist.';
+            publicNoEntriesMessageEl.classList.remove('hidden');
+            if (collectionError && collectionError.message.includes("JSON object requested")) {
+                 publicNoEntriesMessageEl.textContent = 'This collection is not public or does not exist.';
+            }
+            return;
+        }
+        appState.publicCollectionData = collection;
+        publicCollectionTitleEl.textContent = collection.name;
+
+        // Fetch entries for this public collection
+        const { data: entries, error: entriesError } = await supabaseClient
+            .from('entries')
+            .select('*') // Select all entry details needed for display
+            .eq('collection_id', collection.id)
+            .order('date', { ascending: false });
+
+        if (entriesError) throw entriesError;
+
+        appState.publicEntries = entries || [];
+        publicNoEntriesMessageEl.classList.toggle('hidden', appState.publicEntries.length > 0);
+
+        appState.publicEntries.forEach((entry, idx) => {
+            const tile = document.createElement('div');
+            tile.className = 'card grid-entry-tile'; // Use existing styles
+            // tile.dataset.id = entry.id; // Not strictly needed if not navigating to detail from here yet
+
+            let badgeHTML = '';
+            if (idx < appState.publicEntries.length - 1) {
+                const daysDiff = daysBetween(entry.date, appState.publicEntries[idx + 1].date);
+                if (daysDiff && daysDiff > 0) {
+                    badgeHTML = `<span class="days-since-badge">${daysDiff} day${daysDiff > 1 ? 's' : ''} later</span>`;
+                } else if (daysDiff === 0) {
+                    badgeHTML = `<span class="days-since-badge">Same day</span>`;
+                }
+            }
+            const entryImageUrls = getSanitizedImageUrls(entry);
+            const firstImageUrl = entryImageUrls.length > 0 ? entryImageUrls[0] : '';
+
+            tile.innerHTML = `
+                <img src="${firstImageUrl}" alt="${entry.title}" class="grid-entry-image" ${!firstImageUrl ? 'style="background-color: #eee;"' : ''}>
+                <div class="grid-entry-info">
+                    ${badgeHTML}
+                    <h3 class="grid-entry-title">${entry.title}</h3>
+                    ${entry.notes ? `<p style="font-size:0.85em; color:var(--text-secondary); margin-top:5px; max-height: 40px; overflow:hidden;">${entry.notes.substring(0,50)}...</p>` : ''}
+                </div>`;
+            // For public view, clicking tiles could open a read-only detail view (future enhancement)
+            // For now, they are just display tiles.
+             tile.onclick = () => {
+                appState.activeEntryId = entry.id; // Set for detail view
+                // We need to pass that we are in public mode to renderEntryDetailView
+                renderEntryDetailView(entry, true); // Pass 'isPublicView = true'
+                navigateTo('entryDetail');
+            };
+            publicEntriesContainerEl.appendChild(tile);
+        });
+
+    } catch (error) {
+        console.error('Error displaying public collection:', error);
+        publicCollectionTitleEl.textContent = 'Error Loading Collection';
+        publicNoEntriesMessageEl.textContent = 'Could not load this collection.';
+        publicNoEntriesMessageEl.classList.remove('hidden');
+    } finally {
+        publicEntriesLoadingEl.classList.add('hidden');
+    }
+}
+
+// Modify renderEntryDetailView to accept an 'isPublicView' flag
+function renderEntryDetailView(entry, isPublicView = false) { // Added isPublicView
+    const entryImageUrls = getSanitizedImageUrls(entry);
+
+    // ... (existing image display logic) ...
+    if (!entry || entryImageUrls.length === 0) {
+        detailImage.src = '';
+        detailImage.alt = 'No image available';
+        detailImage.style.cursor = 'default';
+        detailImage.onclick = null;
+        detailThumbnailsContainer.innerHTML = '';
+    } else {
+        // appState.currentDetailImageIndex = 0; // This should be handled by displayDetailImage
+        displayDetailImage(entry, 0); // Always start with the first image
+    }
+
+
+    detailTitle.textContent = entry.title;
+    detailNotes.textContent = entry.notes || 'No notes.';
+    detailMetadata.textContent = `Date: ${formatDate(entry.date)}`;
+
+    detailTagsContainer.innerHTML = '';
+    (entry.tags || []).forEach(tag => {
+        const tagChip = document.createElement('span');
+        tagChip.className = 'tag-chip'; // Default, no click for public view of tags
+        if (!isPublicView && !appState.isViewingPublicLink) { // Only make clickable if not public
+            tagChip.classList.add('clickable-tag');
+            tagChip.onclick = () => handleTagClick(tag);
+        }
+        tagChip.textContent = tag;
+        detailTagsContainer.appendChild(tagChip);
+    });
+
+    const prevBtn = document.getElementById('prev-entry-btn');
+    const nextBtn = document.getElementById('next-entry-btn');
+    const editBtn = document.getElementById('edit-entry-btn');
+    const deleteEntryBtn = document.getElementById('delete-entry-btn'); // The main delete button for the entry
+
+    if (isPublicView || appState.isViewingPublicLink) { // If it's a public view
+        editBtn.classList.add('hidden');
+        deleteEntryBtn.classList.add('hidden');
+        // Navigation for public entries (if needed)
+        const entriesToNavigate = appState.publicEntries;
+        const currentPublicIndex = entriesToNavigate.findIndex(e => e.id === entry.id);
+
+        prevBtn.disabled = currentPublicIndex <= 0;
+        nextBtn.disabled = currentPublicIndex >= entriesToNavigate.length - 1;
+
+        prevBtn.onclick = () => {
+            if (currentPublicIndex > 0) {
+                renderEntryDetailView(entriesToNavigate[currentPublicIndex - 1], true);
+            }
+        };
+        nextBtn.onclick = () => {
+            if (currentPublicIndex < entriesToNavigate.length - 1) {
+                renderEntryDetailView(entriesToNavigate[currentPublicIndex + 1], true);
+            }
+        };
+
+    } else { // If it's an authenticated user's view
+        editBtn.classList.remove('hidden');
+        deleteEntryBtn.classList.remove('hidden');
+
+        const idx = appState.activeEntries.findIndex(e => e.id === appState.activeEntryId);
+        prevBtn.disabled = idx <= 0; // Use <= 0 to handle empty or single item arrays
+        nextBtn.disabled = idx < 0 || idx >= appState.activeEntries.length - 1; // Also handle if not found
+
+        prevBtn.onclick = () => {
+            if (idx > 0) { appState.activeEntryId = appState.activeEntries[idx - 1].id; renderEntryDetailView(appState.activeEntries[idx - 1]); }
+        };
+        nextBtn.onclick = () => {
+            if (idx < appState.activeEntries.length - 1) { appState.activeEntryId = appState.activeEntries[idx + 1].id; renderEntryDetailView(appState.activeEntries[idx + 1]); }
+        };
+    }
+}
+
+// Modify back button from detail view
+document.getElementById('back-to-timeline-from-detail-btn').onclick = () => {
+    if (appState.isViewingPublicLink) {
+        displayPublicCollection(appState.publicCollectionData.id); // Go back to public collection view
+    } else if (appState.activeCollectionId) {
+        renderCollectionTimelineView();
+    } else {
+        navigateTo('home');
     }
 }
 
@@ -1053,6 +1247,62 @@ document.addEventListener('DOMContentLoaded', async () => {
         lightboxOverlay.addEventListener('click', (event) => {
             if (event.target === lightboxOverlay) { // Clicked on overlay itself, not content
                 closeLightbox();
+                
+    const generatePublicLinkBtn = document.getElementById('generate-public-link-btn');
+if (generatePublicLinkBtn) {
+    generatePublicLinkBtn.onclick = async () => {
+        if (!appState.currentUser || !appState.activeCollectionId) {
+            alert("Cannot generate link. Please ensure you are logged in and viewing a collection.");
+            return;
+        }
+
+        try {
+            // 1. Update the collection to be public
+            const { data, error } = await supabaseClient
+                .from('collections')
+                .update({ is_public: true })
+                .eq('id', appState.activeCollectionId)
+                .eq('user_id', appState.currentUser.id) // Ensure only owner can make public
+                .select('name') // get name for confirmation
+                .single();
+
+            if (error) throw error;
+            if (!data) {
+                alert("Could not update collection. You might not be the owner.");
+                return;
+            }
+
+
+            // 2. Construct the link
+            const publicLink = `${window.location.origin}${window.location.pathname}?publicCollectionId=${appState.activeCollectionId}`;
+
+            // 3. Copy to clipboard
+            if (navigator.clipboard && window.isSecureContext) { // Check if clipboard API is available
+                await navigator.clipboard.writeText(publicLink);
+                alert(`Public link for "${data.name}" copied to clipboard!\n${publicLink}\n\nTo make it private again, you'll need a 'Make Private' button (not yet implemented).`);
+            } else {
+                // Fallback for non-secure contexts or older browsers
+                prompt(`Public link for "${data.name}" (Copy this manually):`, publicLink);
+            }
+
+            // Visually update the button state if needed (e.g., change text to "Link Copied" or "View Public")
+            // Also update the local appState.collections if you want to reflect is_public immediately
+            const collectionInState = appState.collections.find(c => c.id === appState.activeCollectionId);
+            if (collectionInState) {
+                collectionInState.is_public = true;
+                // You might want to change the button text or disable it,
+                // or change it to a "Make Private" button.
+                generatePublicLinkBtn.textContent = "Public Link Shared";
+                // generatePublicLinkBtn.disabled = true; // Or change functionality
+            }
+
+
+        } catch (error) {
+            console.error('Error generating public link:', error);
+            alert('Error making collection public: ' + error.message);
+        }
+    };
+}
             }
         });
     }
