@@ -611,18 +611,6 @@
             border: 1px solid var(--danger-border);
             text-align: left;
         }
-        /* Success message styling (for email verification note) */
-        .success-message {
-            color: var(--primary-accent-darker); /* Or a distinct success color */
-            font-size: 0.9em;
-            margin-top: 10px; /* Adjust as needed */
-            margin-bottom: 15px;
-            background-color: rgba(var(--primary-accent-rgb), 0.1); /* Light background */
-            padding: 10px;
-            border-radius: var(--border-radius-small);
-            border: 1px solid var(--primary-accent);
-            text-align: left;
-        }
         
         .switch-link {
             color: var(--primary-accent); 
@@ -752,7 +740,6 @@
                 </div>
                 <button type="submit">Sign In</button>
                 <div id="login-error" class="error-message hidden"></div>
-                <div id="login-info" class="success-message hidden"></div> <!-- For info like "check email" -->
                 <span class="switch-link" id="switch-to-signup">Don't have an account? Sign up</span>
             </form>
         </div>
@@ -780,7 +767,6 @@
                 </div>
                 <button type="submit">Sign Up</button>
                 <div id="signup-error" class="error-message hidden"></div>
-                <div id="signup-success" class="success-message hidden"></div> <!-- For "check email" message -->
                 <span class="switch-link" id="switch-to-login">Already have an account? Sign in</span>
             </form>
         </div>
@@ -995,32 +981,61 @@
 
 
     <script>
-        // Configuration
+        // Configuration - Replace these with your values
         const SUPABASE_URL = 'https://wgjxmpahcfhzgflcnlib.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndnanhtcGFoY2ZoemdmbGNubGliIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcyMzQzNjAsImV4cCI6MjA2MjgxMDM2MH0.6ji6OY6-g8IkdVvR6f9iZAN83qJunCN4EjnVey8_LJc';
-        const GOOGLE_CLOUD_VISION_API_KEY = 'AIzaSyDB9lq0UssbbXndJrwVL-TEaplkbPOmk4w';
+        const GOOGLE_CLOUD_VISION_API_KEY = 'AIzaSyDB9lq0UssbbXndJrwVL-TEaplkbPOmk4w'; // Your actual key
         
+        // Initialize Supabase
         const { createClient } = supabase;
         const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+        // App State
         const appState = {
-            currentUser: null, collections: [], currentView: 'signup', 
-            activeCollectionId: null, activeEntryId: null, activeEntries: [], 
-            newEntrySelectedFiles: [], editingEntryOriginal: null,
-            editEntryExistingImageUrls: [], editEntryFilesToAdd: [],
-            currentTags: [], aiSuggestedTags: [], currentTagName: null, 
-            taggedEntries: [], viewBeforeTagSearch: null, 
-            entryIdBeforeTagSearch: null, collectionIdForEntryBeforeTagSearch: null,
-            currentDetailImageIndex: 0,
+            currentUser: null,
+            collections: [],
+            currentView: 'signup', 
+            activeCollectionId: null,
+            activeEntryId: null,
+            activeEntries: [], 
+            
+            newEntrySelectedFiles: [],      
+            
+            editingEntryOriginal: null,     
+            editEntryExistingImageUrls: [], 
+            editEntryFilesToAdd: [],        
+
+            currentTags: [],      
+            aiSuggestedTags: [],  
+            currentTagName: null, 
+            taggedEntries: [],    
+            viewBeforeTagSearch: null, 
+            entryIdBeforeTagSearch: null, 
+            collectionIdForEntryBeforeTagSearch: null,
+            currentDetailImageIndex: 0, 
         };
 
-        const views = { /* ... same as before ... */ };
-        // (Initialize all view consts as before)
+        // View Elements (IDs must match HTML)
+        const views = {
+            signup: document.getElementById('signup-view'),
+            login: document.getElementById('login-view'),
+            home: document.getElementById('home-view'),
+            newCollectionModal: document.getElementById('new-collection-modal-view'),
+            collectionTimeline: document.getElementById('collection-timeline-view'),
+            newEntry: document.getElementById('new-entry-view'),
+            entryDetail: document.getElementById('entry-detail-view'),
+            editEntry: document.getElementById('edit-entry-view'),
+            taggedEntries: document.getElementById('tagged-entries-view'),
+        };
+
+        // Form Elements
         const loginForm = document.getElementById('login-form');
         const signupForm = document.getElementById('signup-form');
         const newCollectionForm = document.getElementById('new-collection-form');
         const newEntryForm = document.getElementById('new-entry-form');
         const editEntryForm = document.getElementById('edit-entry-form');
+        
+        // Other DOM Elements
         const greetingEl = document.getElementById('greeting');
         const collectionsContainer = document.getElementById('collections-container');
         const noCollectionsMessage = document.getElementById('no-collections-message');
@@ -1029,6 +1044,7 @@
         const entriesTimelineContainer = document.getElementById('entries-timeline-container');
         const noEntriesMessage = document.getElementById('no-entries-message');
         const entriesLoading = document.getElementById('entries-loading');
+        
         const imageUploadInput = document.getElementById('image-upload');
         const imageUploadLabel = document.getElementById('image-upload-label');
         const imagePreviewsContainer = document.getElementById('image-previews-container'); 
@@ -1038,6 +1054,7 @@
         const tagBar = document.getElementById('tag-bar'); 
         const editTagBarEl = document.getElementById('edit-tag-bar'); 
         const entryUploadLoader = document.getElementById('entry-upload-loader');
+        
         const detailImage = document.getElementById('detail-image');
         const detailThumbnailsContainer = document.getElementById('detail-thumbnails-container');
         const detailTitle = document.getElementById('detail-title');
@@ -1045,27 +1062,26 @@
         const detailTagsContainer = document.getElementById('detail-tags');
         const detailMetadata = document.getElementById('detail-metadata');
         const loginError = document.getElementById('login-error');
-        const loginInfo = document.getElementById('login-info'); // Added for info messages
         const signupError = document.getElementById('signup-error');
-        const signupSuccess = document.getElementById('signup-success'); // Added for success messages
+
         const editExistingImagesContainer = document.getElementById('edit-existing-images-container');
         const editAddMoreImagesInput = document.getElementById('edit-add-more-images-input');
         const editNewImagePreviewsContainer = document.getElementById('edit-new-image-previews-container');
+
         const lightboxOverlay = document.getElementById('lightbox-overlay');
         const lightboxContent = document.getElementById('lightbox-content');
         const lightboxImage = document.getElementById('lightbox-image');
         const lightboxCloseBtn = document.getElementById('lightbox-close');
         const lightboxZoomInBtn = document.getElementById('lightbox-zoom-in');
         const lightboxZoomOutBtn = document.getElementById('lightbox-zoom-out');
-        
-        Object.keys(views).forEach(id => { // Initialize views object from DOM
-            views[id] = document.getElementById(id + '-view');
-        });
 
         let currentLightboxZoomScale = 1;
-        const LIGHTBOX_ZOOM_STEP = 0.2, LIGHTBOX_MIN_ZOOM = 0.4, LIGHTBOX_MAX_ZOOM = 5;   
+        const LIGHTBOX_ZOOM_STEP = 0.2; 
+        const LIGHTBOX_MIN_ZOOM = 0.4; 
+        const LIGHTBOX_MAX_ZOOM = 5;   
 
-        function getSanitizedImageUrls(entry) { /* ... same as before ... */ 
+        // --- Helper function to safely get image URLs array ---
+        function getSanitizedImageUrls(entry) {
             if (!entry || !entry.image_urls) return [];
             if (Array.isArray(entry.image_urls)) return entry.image_urls;
             if (typeof entry.image_urls === 'string') {
@@ -1077,26 +1093,30 @@
                     return [];
                 }
             }
-            return [];
+            return []; // Default to empty if not array or parsable string
         }
-        function navigateTo(viewId) { /* ... same as before ... */ 
+
+
+        function navigateTo(viewId) {
             appState.currentView = viewId;
             Object.keys(views).forEach(id => {
-                if (views[id]) views[id].classList.add('hidden');
+                views[id].classList.add('hidden');
             });
             if (views[viewId]) {
                 views[viewId].classList.remove('hidden');
             }
             window.scrollTo(0, 0);
         }
-        function formatDate(dateStrOrObj) { /* ... same as before ... */ 
+
+        function formatDate(dateStrOrObj) {
             const date = new Date(dateStrOrObj);
             const year = date.getFullYear();
             const month = String(date.getMonth() + 1).padStart(2, '0');
             const day = String(date.getDate()).padStart(2, '0');
             return `${year}-${month}-${day}`;
         }
-        function daysBetween(d1Str, d2Str) { /* ... same as before ... */ 
+
+        function daysBetween(d1Str, d2Str) {
             if (!d1Str || !d2Str) return null;
             const d1 = new Date(d1Str);
             const d2 = new Date(d2Str);
@@ -1106,97 +1126,35 @@
             return Math.ceil((laterDate - earlierDate) / (1000 * 60 * 60 * 24));
         }
 
-        async function fetchUserProfile(userId) {
-            const { data: profile, error } = await supabaseClient
-                .from('profiles')
-                .select('username, phone')
-                .eq('id', userId)
-                .single();
-            if (error && error.code !== 'PGRST116') { // PGRST116 = 0 rows, not necessarily an error if profile is optional
-                console.error('Error fetching profile:', error);
-            }
-            return profile;
-        }
-
-        async function handleUserSession(user) {
-            appState.currentUser = user;
-            const profile = await fetchUserProfile(user.id);
-            if (profile) {
-                appState.currentUser.username = profile.username;
-                appState.currentUser.phone = profile.phone;
-            }
-            await loadCollections();
-            renderHomeView();
-            navigateTo('home');
-            // Clear hash from URL after processing
-            if (window.location.hash) {
-                history.pushState("", document.title, window.location.pathname + window.location.search);
-            }
-        }
-
-        // Listen for auth state changes (login, logout, token refresh, redirect from email link)
-        supabaseClient.auth.onAuthStateChange(async (event, session) => {
-            console.log('Auth event:', event, session);
-            if (event === 'SIGNED_IN' && session?.user) {
-                if (session.user.email_confirmed_at || !session.user.email_confirmed_at && !isEmailConfirmationRequiredForUser(session.user)) { // Added a hypothetical check
-                    await handleUserSession(session.user);
-                } else if (!session.user.email_confirmed_at) {
-                    // User is signed in but email not confirmed.
-                    // This case might happen if they sign up, then try to log in before confirming.
-                    // Or if they clicked the link but something didn't fully update their local state.
-                    console.log("User signed in, but email not confirmed. Displaying info message.");
-                    if (appState.currentView === 'login') {
-                         loginInfo.textContent = "Please check your email to verify your account before full access.";
-                         loginInfo.classList.remove('hidden');
-                         loginError.classList.add('hidden');
+        async function checkAuth() {
+            try {
+                const { data: { user } } = await supabaseClient.auth.getUser();
+                if (user) {
+                    appState.currentUser = user;
+                    const { data: profile } = await supabaseClient
+                        .from('profiles')
+                        .select('*')
+                        .eq('id', user.id)
+                        .single();
+                    
+                    if (profile) {
+                        appState.currentUser.username = profile.username;
+                        appState.currentUser.phone = profile.phone;
                     }
-                    // We might not navigate away from login/signup here to let them see the message.
-                    // Or, if they just verified, a refresh or `getUser` call might soon update `email_confirmed_at`.
-                }
-            } else if (event === 'SIGNED_OUT') {
-                appState.currentUser = null;
-                navigateTo('login');
-            } else if (event === 'USER_UPDATED' && session?.user) {
-                // This might fire after email confirmation if the user object is updated
-                if (session.user.email_confirmed_at && appState.currentUser?.id === session.user.id && !appState.currentUser.email_confirmed_at) {
-                    console.log("Email confirmed for existing user session.");
-                    await handleUserSession(session.user); // Re-process to ensure navigation to home
+                    
+                    await loadCollections();
+                    renderHomeView();
+                    navigateTo('home');
                 } else {
-                    appState.currentUser = session.user; // Update current user with any changes
+                    navigateTo('signup'); 
                 }
+            } catch (error) {
+                console.error('Auth check error:', error);
+                navigateTo('signup'); 
             }
-            // Initial check for user when app loads
-            if (event === 'INITIAL_SESSION' && session?.user) {
-                 if (session.user.email_confirmed_at || !isEmailConfirmationRequiredForUser(session.user)) {
-                    await handleUserSession(session.user);
-                } else {
-                    console.log("Initial session, but email not confirmed. User should verify.");
-                     if (appState.currentView !== 'home' ) { // Don't show on home if they somehow got there
-                        navigateTo('login');
-                        loginInfo.textContent = "Please check your email to complete verification.";
-                        loginInfo.classList.remove('hidden');
-                     }
-                }
-            } else if (event === 'INITIAL_SESSION' && !session) {
-                 // No user on initial load, determine view based on URL or default to signup/login
-                if (!window.location.hash.includes('access_token')) { // Don't navigate if tokens are in hash (being processed)
-                    navigateTo('signup');
-                }
-            }
-        });
-        
-        // Hypothetical function to check if confirmation is actually required by Supabase settings
-        // In a real app, you'd know this from your Supabase config (Secure email change ON/OFF)
-        function isEmailConfirmationRequiredForUser(user) {
-            // This is a placeholder. Supabase's "Enable email confirmations" setting applies globally.
-            // If it's ON, new signups will require it.
-            // If "Secure email change" is ON, email changes will require it.
-            // For simplicity, we assume if `email_confirmed_at` is missing, it's required for new users.
-            return !user.email_confirmed_at; // A basic check
         }
 
-
-        async function loadCollections() { /* ... same as before ... */ 
+        async function loadCollections() {
             collectionsLoading.classList.remove('hidden');
             try {
                 const { data: collections, error } = await supabaseClient
@@ -1230,7 +1188,8 @@
                 collectionsLoading.classList.add('hidden');
             }
         }
-        async function loadEntries(collectionId) { /* ... same as before ... */ 
+
+        async function loadEntries(collectionId) {
             entriesLoading.classList.remove('hidden');
             try {
                 const { data: entries, error } = await supabaseClient
@@ -1248,9 +1207,10 @@
                 entriesLoading.classList.add('hidden');
             }
         }
-        async function uploadImage(file, userId) { /* ... same as before ... */ 
-             const fileExt = file.name.split('.').pop();
-            const fileName = `${userId}/${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`; // Added randomness
+
+        async function uploadImage(file, userId) { 
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${userId}/${Date.now()}.${fileExt}`; 
             
             const { data, error } = await supabaseClient.storage
                 .from('entry-images')
@@ -1263,8 +1223,9 @@
                 .getPublicUrl(fileName);
             return publicUrl;
         }
-        async function predictTagsForImage(imgDataURL) { /* ... same as before ... */ 
-             if (!GOOGLE_CLOUD_VISION_API_KEY || GOOGLE_CLOUD_VISION_API_KEY === 'YOUR_GOOGLE_CLOUD_VISION_API_KEY_HERE') {
+
+        async function predictTagsForImage(imgDataURL) { 
+            if (!GOOGLE_CLOUD_VISION_API_KEY || GOOGLE_CLOUD_VISION_API_KEY === 'YOUR_GOOGLE_CLOUD_VISION_API_KEY_HERE') {
                 console.warn("Google Cloud Vision API key not configured. Skipping tag prediction.");
                 return [];
             }
@@ -1308,9 +1269,10 @@
                 imageProcessingLoader.classList.add('hidden');
             }
         }
+
         function renderHomeView() {
             if (!appState.currentUser) { navigateTo('signup'); return; }
-            greetingEl.textContent = `Welcome!`; 
+            greetingEl.textContent = `Welcome, ${appState.currentUser.username || appState.currentUser.email.split('@')[0]}!`;
             collectionsContainer.innerHTML = '';
             noCollectionsMessage.classList.toggle('hidden', appState.collections.length > 0);
             appState.collections.forEach(col => {
@@ -1328,7 +1290,8 @@
                 collectionsContainer.appendChild(card);
             });
         }
-        async function renderCollectionTimelineView() { /* ... same as before, uses getSanitizedImageUrls ... */ 
+
+        async function renderCollectionTimelineView() {
             const collection = appState.collections.find(c => c.id === appState.activeCollectionId);
             if (!collection) { console.error("Collection not found"); navigateTo('home'); return; }
             collectionTitleTimeline.textContent = collection.name;
@@ -1373,7 +1336,8 @@
             });
             navigateTo('collectionTimeline');
         }
-        function _renderTagBar(barElement, inputId, selectedTags, suggestedTags, addCustomFn, removeSelectedFn, selectSuggestedFn) { /* ... same as before ... */ 
+        
+        function _renderTagBar(barElement, inputId, selectedTags, suggestedTags, addCustomFn, removeSelectedFn, selectSuggestedFn) {
             const customInputEl = barElement.querySelector(`#${inputId}`);
             const customVal = customInputEl ? customInputEl.value : '';
             barElement.innerHTML = '';
@@ -1405,8 +1369,9 @@
             newCustomInput.value = customVal;
             barElement.appendChild(newCustomInput);
         }
-        function handleAddCustomTagForNewEntry() { /* ... same as before ... */ 
-             const input = tagBar.querySelector('#custom-tag-input');
+
+        function handleAddCustomTagForNewEntry() {
+            const input = tagBar.querySelector('#custom-tag-input');
             const tag = input.value.trim();
             if (tag && !appState.currentTags.includes(tag)) {
                 appState.currentTags.push(tag);
@@ -1415,18 +1380,19 @@
             input.value = '';
             _renderTagBar(tagBar, 'custom-tag-input', appState.currentTags, appState.aiSuggestedTags, handleAddCustomTagForNewEntry, handleRemoveSelectedTagForNewEntry, handleSelectSuggestedTagForNewEntry);
         }
-        function handleRemoveSelectedTagForNewEntry(tagToRemove) { /* ... same as before ... */ 
+        function handleRemoveSelectedTagForNewEntry(tagToRemove) {
             appState.currentTags = appState.currentTags.filter(t => t !== tagToRemove);
             _renderTagBar(tagBar, 'custom-tag-input', appState.currentTags, appState.aiSuggestedTags, handleAddCustomTagForNewEntry, handleRemoveSelectedTagForNewEntry, handleSelectSuggestedTagForNewEntry);
         }
-        function handleSelectSuggestedTagForNewEntry(tagToSelect) { /* ... same as before ... */ 
+        function handleSelectSuggestedTagForNewEntry(tagToSelect) {
             if (!appState.currentTags.includes(tagToSelect)) {
                 appState.currentTags.push(tagToSelect);
             }
             appState.aiSuggestedTags = appState.aiSuggestedTags.filter(t => t !== tagToSelect);
             _renderTagBar(tagBar, 'custom-tag-input', appState.currentTags, appState.aiSuggestedTags, handleAddCustomTagForNewEntry, handleRemoveSelectedTagForNewEntry, handleSelectSuggestedTagForNewEntry);
         }
-        function handleAddCustomTagForEditEntry() { /* ... same as before ... */ 
+
+        function handleAddCustomTagForEditEntry() {
             const input = editTagBarEl.querySelector('#edit-custom-tag-input');
             const tag = input.value.trim();
             if (tag && !appState.currentTags.includes(tag)) {
@@ -1435,11 +1401,12 @@
             input.value = '';
             _renderTagBar(editTagBarEl, 'edit-custom-tag-input', appState.currentTags, [], handleAddCustomTagForEditEntry, handleRemoveSelectedTagForEditEntry, () => {});
         }
-        function handleRemoveSelectedTagForEditEntry(tagToRemove) { /* ... same as before ... */ 
-             appState.currentTags = appState.currentTags.filter(t => t !== tagToRemove);
+        function handleRemoveSelectedTagForEditEntry(tagToRemove) {
+            appState.currentTags = appState.currentTags.filter(t => t !== tagToRemove);
             _renderTagBar(editTagBarEl, 'edit-custom-tag-input', appState.currentTags, [], handleAddCustomTagForEditEntry, handleRemoveSelectedTagForEditEntry, () => {});
         }
-        function renderNewEntryForm() { /* ... same as before ... */ 
+
+        function renderNewEntryForm() {
             newEntryForm.reset();
             imagePreviewsContainer.innerHTML = ''; 
             imageUploadLabel.classList.remove('hidden');
@@ -1454,7 +1421,8 @@
             imageProcessingLoader.classList.add('hidden');
             entryUploadLoader.classList.add('hidden');
         }
-        function renderNewEntryImagePreviews() { /* ... same as before ... */ 
+        
+        function renderNewEntryImagePreviews() {
             imagePreviewsContainer.innerHTML = ''; 
             if (appState.newEntrySelectedFiles.length > 0) {
                 imageUploadLabel.classList.add('hidden');
@@ -1486,7 +1454,8 @@
                 reader.readAsDataURL(file);
             });
         }
-        async function processFirstImageForNewEntry() { /* ... same as before ... */ 
+
+        async function processFirstImageForNewEntry() {
             if (appState.newEntrySelectedFiles.length > 0) {
                 const firstFile = appState.newEntrySelectedFiles[0];
                 const reader = new FileReader();
@@ -1519,7 +1488,8 @@
                  _renderTagBar(tagBar, 'custom-tag-input', appState.currentTags, appState.aiSuggestedTags, handleAddCustomTagForNewEntry, handleRemoveSelectedTagForNewEntry, handleSelectSuggestedTagForNewEntry);
             }
         }
-        function renderEditEntryForm(entry) { /* ... same as before, uses getSanitizedImageUrls ... */ 
+
+        function renderEditEntryForm(entry) {
             appState.editingEntryOriginal = JSON.parse(JSON.stringify(entry)); 
             const existingUrls = getSanitizedImageUrls(entry);
             appState.editEntryExistingImageUrls = [...existingUrls];
@@ -1549,7 +1519,8 @@
             _renderTagBar(editTagBarEl, 'edit-custom-tag-input', appState.currentTags, [], handleAddCustomTagForEditEntry, handleRemoveSelectedTagForEditEntry, () => {});
             document.getElementById('edit-upload-loader').classList.add('hidden');
         }
-        function renderEditEntryNewImagePreviews() { /* ... same as before ... */ 
+
+        function renderEditEntryNewImagePreviews() {
             editNewImagePreviewsContainer.innerHTML = ''; 
             appState.editEntryFilesToAdd.forEach((file, index) => {
                 const reader = new FileReader();
@@ -1569,8 +1540,9 @@
                 reader.readAsDataURL(file);
             });
         }
-        function renderEntryDetailView(entry) { /* ... same as before, uses getSanitizedImageUrls ... */ 
-             const entryImageUrls = getSanitizedImageUrls(entry);
+
+        function renderEntryDetailView(entry) {
+            const entryImageUrls = getSanitizedImageUrls(entry);
 
             if (!entry || entryImageUrls.length === 0) {
                 detailImage.src = ''; 
@@ -1607,9 +1579,11 @@
                 if (idx < appState.activeEntries.length - 1) { appState.activeEntryId = appState.activeEntries[idx + 1].id; renderEntryDetailView(appState.activeEntries[idx + 1]); }
             };
         }
-        function displayDetailImage(entry, index) { /* ... same as before, uses getSanitizedImageUrls ... */ 
+
+        function displayDetailImage(entry, index) {
             const entryImageUrls = getSanitizedImageUrls(entry);
             if (entryImageUrls.length === 0 || index < 0 || index >= entryImageUrls.length) {
+                // Fallback if somehow called with invalid index or no images after initial check
                 detailImage.src = ''; 
                 detailImage.alt = 'No image available';
                 detailImage.style.cursor = 'default';
@@ -1638,7 +1612,9 @@
                 detailThumbnailsContainer.appendChild(thumb);
             });
         }
-        async function handleTagClick(tagName) { /* ... same as before ... */ 
+
+
+        async function handleTagClick(tagName) {
             appState.currentTagName = tagName;
             appState.viewBeforeTagSearch = appState.currentView; 
             appState.entryIdBeforeTagSearch = appState.activeEntryId;
@@ -1654,7 +1630,8 @@
             renderTaggedEntriesView(tagName, entries);
             document.getElementById('tagged-entries-loading').classList.add('hidden');
         }
-        async function fetchEntriesByTag(tagName) { /* ... same as before ... */ 
+
+        async function fetchEntriesByTag(tagName) {
             try {
                 const { data: userCollectionObjects, error: collectionError } = await supabaseClient
                     .from('collections')
@@ -1683,7 +1660,8 @@
                 return [];
             }
         }
-        function renderTaggedEntriesView(tagName, entries) { /* ... same as before, uses getSanitizedImageUrls ... */ 
+
+        function renderTaggedEntriesView(tagName, entries) { 
             document.getElementById('tagged-entries-title').textContent = `Entries tagged: "${tagName}"`;
             const container = document.getElementById('tagged-entries-container');
             container.innerHTML = ''; 
@@ -1726,14 +1704,15 @@
                     appState.activeEntryId = entry.id;
                     appState.activeCollectionId = entry.collection_id; 
                     appState.activeEntries = await loadEntries(entry.collection_id); 
-                    const fullEntryData = appState.activeEntries.find(e => e.id === entry.id) || entry; 
+                    const fullEntryData = appState.activeEntries.find(e => e.id === entry.id) || entry; // Prefer fresh load
                     renderEntryDetailView(fullEntryData); 
                     navigateTo('entryDetail');
                 };
                 container.appendChild(tile); 
             });
         }
-        function applyLightboxZoom() { /* ... same as before ... */ 
+
+        function applyLightboxZoom() {
             lightboxImage.style.transform = `scale(${currentLightboxZoomScale})`;
             if (currentLightboxZoomScale > 1) {
                 lightboxContent.style.cursor = 'grab'; 
@@ -1743,8 +1722,9 @@
                 lightboxContent.style.overflow = 'hidden';
             }
         }
-        function openLightbox(imageUrl) { /* ... same as before ... */ 
-             if (!imageUrl) return; 
+
+        function openLightbox(imageUrl) {
+            if (!imageUrl) return; // Don't open if no URL
             lightboxImage.src = imageUrl;
             currentLightboxZoomScale = 1;
             applyLightboxZoom(); 
@@ -1752,7 +1732,8 @@
             document.body.style.overflow = 'hidden'; 
             document.addEventListener('keydown', handleLightboxEscKey);
         }
-        function closeLightbox() { /* ... same as before ... */ 
+
+        function closeLightbox() {
             lightboxOverlay.classList.add('hidden');
             lightboxImage.src = '#'; 
             document.body.style.overflow = ''; 
@@ -1761,15 +1742,22 @@
             lightboxContent.scrollTop = 0;
             lightboxContent.scrollLeft = 0;
         }
-        function handleLightboxEscKey(event) { if (event.key === 'Escape') closeLightbox(); }
-        function zoomInLightbox() { /* ... same as before ... */ 
+
+        function handleLightboxEscKey(event) {
+            if (event.key === 'Escape') {
+                closeLightbox();
+            }
+        }
+
+        function zoomInLightbox() {
             if (currentLightboxZoomScale < LIGHTBOX_MAX_ZOOM) {
                 currentLightboxZoomScale += LIGHTBOX_ZOOM_STEP;
                 if (currentLightboxZoomScale > LIGHTBOX_MAX_ZOOM) currentLightboxZoomScale = LIGHTBOX_MAX_ZOOM;
             }
             applyLightboxZoom();
         }
-        function zoomOutLightbox() { /* ... same as before ... */ 
+
+        function zoomOutLightbox() {
             if (currentLightboxZoomScale > LIGHTBOX_MIN_ZOOM) {
                 currentLightboxZoomScale -= LIGHTBOX_ZOOM_STEP;
                 if (currentLightboxZoomScale < LIGHTBOX_MIN_ZOOM) currentLightboxZoomScale = LIGHTBOX_MIN_ZOOM;
@@ -1777,120 +1765,77 @@
             applyLightboxZoom();
         }
 
+
+        // --- Event Handlers ---
         loginForm.onsubmit = async (e) => {
-            e.preventDefault(); 
-            loginError.classList.add('hidden'); loginError.textContent = '';
-            loginInfo.classList.add('hidden'); loginInfo.textContent = '';
+            e.preventDefault(); loginError.classList.add('hidden'); loginError.textContent = '';
             const emailVal = document.getElementById('login-email').value;
             const passwordVal = document.getElementById('login-password').value;
             try {
-                const { data, error } = await supabaseClient.auth.signInWithPassword({ 
-                    email: emailVal, 
-                    password: passwordVal 
-                });
-                if (error) {
-                    // Check for specific error related to unconfirmed email
-                    if (error.message.toLowerCase().includes('email not confirmed')) {
-                        loginInfo.textContent = "Please check your email to verify your account before logging in.";
-                        loginInfo.classList.remove('hidden');
-                    } else {
-                        throw error; // Rethrow other errors
-                    }
-                }
-                // onAuthStateChange will handle successful login and navigation
-            } catch (error) { 
-                loginError.textContent = error.message; 
-                loginError.classList.remove('hidden'); 
-            }
+                const { error } = await supabaseClient.auth.signInWithPassword({ email: emailVal, password: passwordVal });
+                if (error) throw error;
+                await checkAuth();
+            } catch (error) { loginError.textContent = error.message; loginError.classList.remove('hidden'); }
         };
 
         signupForm.onsubmit = async (e) => {
-            e.preventDefault(); 
-            signupError.classList.add('hidden'); signupError.textContent = '';
-            signupSuccess.classList.add('hidden'); signupSuccess.textContent = '';
+            e.preventDefault(); signupError.classList.add('hidden'); signupError.textContent = '';
             const usernameVal = document.getElementById('username').value;
             const phoneVal = document.getElementById('phone').value;
             const emailVal = document.getElementById('email').value;
             const passwordVal = document.getElementById('password').value;
             try {
-                // If "Enable email confirmations" is ON in Supabase, `data.session` will be null here.
-                // The user object will be returned but they are not yet authenticated.
-                const { data: authResponse, error: authError } = await supabaseClient.auth.signUp({ 
-                    email: emailVal, 
-                    password: passwordVal,
-                    options: {
-                        data: { // This data is available in email templates via {{ .Data.username }}
-                            username: usernameVal,
-                            // phone: phoneVal // You can add phone here if needed in email template
-                        }
-                    }
-                });
-
+                const { data: authData, error: authError } = await supabaseClient.auth.signUp({ email: emailVal, password: passwordVal });
                 if (authError) throw authError;
-
-                if (authResponse.user) {
-                    // Insert profile immediately, regardless of confirmation status
-                    const { error: profileError } = await supabaseClient
-                        .from('profiles')
-                        .insert({ id: authResponse.user.id, username: usernameVal, phone: phoneVal });
-                    if (profileError) {
-                        // Log profile error but don't necessarily block the "check email" message
-                        console.error('Profile creation error after signup:', profileError);
+                if (authData.user) {
+                    const { error: profileError } = await supabaseClient.from('profiles').insert({ id: authData.user.id, username: usernameVal, phone: phoneVal });
+                    if (profileError) console.error('Profile creation error:', profileError);
+                    // Check if session is immediately available (auto-confirm might be on)
+                    if (authData.session) { await checkAuth(); } 
+                    else { 
+                        signupError.textContent = 'Account created! Please check your email to confirm and then log in.';
+                        signupError.classList.remove('hidden');
+                        signupError.style.color = 'var(--primary-accent)'; 
+                        setTimeout(() => navigateTo('login'), 4000);
                     }
-
-                    // Check if email confirmation is required by Supabase (it should be if enabled)
-                    // `authResponse.session` will be null if confirmation is required
-                    if (!authResponse.session && authResponse.user.identities && authResponse.user.identities.length > 0) {
-                         signupSuccess.textContent = 'Account created! Please check your email to verify your account.';
-                         signupSuccess.classList.remove('hidden');
-                         signupForm.reset(); // Clear the form
-                    } else if (authResponse.session) {
-                        // This case means auto-confirmation might be on, or some other flow
-                        // onAuthStateChange will handle it.
-                        console.log("Signup successful with immediate session.");
-                    } else {
-                         // Fallback message if user object exists but no session and no clear indication of email sent
-                         signupSuccess.textContent = 'Account created. Follow any instructions sent to your email.';
-                         signupSuccess.classList.remove('hidden');
-                    }
-                } else {
-                    // Should not happen if no error, but as a fallback
-                    signupError.textContent = "Signup failed. Please try again.";
-                    signupError.classList.remove('hidden');
                 }
-            } catch (error) { 
-                signupError.textContent = error.message; 
-                signupError.classList.remove('hidden'); 
-            }
+            } catch (error) { signupError.textContent = error.message; signupError.classList.remove('hidden'); signupError.style.color = 'var(--danger-color)';}
         };
 
-        document.getElementById('sign-out-btn').onclick = async () => { /* ... same as before ... */ 
+        document.getElementById('sign-out-btn').onclick = async () => {
             if (confirm("Are you sure you want to sign out?")) {
                 await supabaseClient.auth.signOut();
-                // onAuthStateChange will handle navigation to login
+                appState.currentUser = null; appState.collections = []; appState.activeCollectionId = null; appState.activeEntryId = null;
+                navigateTo('login');
             }
         };
+
         document.getElementById('new-collection-btn-home').onclick = () => { document.getElementById('collection-name').value = ''; navigateTo('newCollectionModal'); };
         document.getElementById('cancel-new-collection-btn').onclick = () => navigateTo('home');
-        newCollectionForm.onsubmit = async (e) => { /* ... same as before ... */ 
-             e.preventDefault();
+
+        newCollectionForm.onsubmit = async (e) => {
+            e.preventDefault();
             try {
                 const { error } = await supabaseClient.from('collections').insert({ name: document.getElementById('collection-name').value, user_id: appState.currentUser.id }).select().single();
                 if (error) throw error;
                 await loadCollections(); renderHomeView(); navigateTo('home');
             } catch (error) { console.error('Error creating collection:', error); alert('Error creating collection.'); }
         };
+
         document.getElementById('back-to-home-btn').onclick = () => navigateTo('home');
         document.getElementById('add-entry-fab').onclick = () => { renderNewEntryForm(); navigateTo('newEntry'); };
         document.getElementById('back-to-timeline-btn').onclick = () => { appState.activeCollectionId ? renderCollectionTimelineView() : navigateTo('home'); };
-        imageUploadInput.onchange = e => { /* ... same as before ... */ 
+
+        imageUploadInput.onchange = e => {
             appState.newEntrySelectedFiles = Array.from(e.target.files); 
             renderNewEntryImagePreviews();
             processFirstImageForNewEntry(); 
         };
+
         document.getElementById('add-custom-tag-btn').onclick = handleAddCustomTagForNewEntry;
         tagBar.addEventListener('keypress', e => { if (e.target.id === 'custom-tag-input' && e.key === 'Enter') { e.preventDefault(); handleAddCustomTagForNewEntry(); }});
-        newEntryForm.onsubmit = async (e) => { /* ... same as before ... */ 
+
+        newEntryForm.onsubmit = async (e) => {
             e.preventDefault(); 
             if (appState.newEntrySelectedFiles.length === 0) { 
                 alert("Please select at least one image."); return; 
@@ -1901,7 +1846,7 @@
             try {
                 const uploadedImageUrls = [];
                 for (const file of appState.newEntrySelectedFiles) {
-                    const url = await uploadImage(file, appState.currentUser.id); 
+                    const url = await uploadImage(file, appState.currentUser.id); // Corrected from imageUrl to url
                     uploadedImageUrls.push(url);
                 }
 
@@ -1929,8 +1874,10 @@
                 document.getElementById('create-entry-btn').disabled = false; 
             }
         };
+
         document.getElementById('back-to-timeline-from-detail-btn').onclick = () => { appState.activeCollectionId ? renderCollectionTimelineView() : navigateTo('home'); };
-        document.getElementById('back-from-tagged-view-btn').onclick = async () => { /* ... same as before ... */ 
+        
+        document.getElementById('back-from-tagged-view-btn').onclick = async () => {
             if (appState.viewBeforeTagSearch === 'entryDetail' && appState.entryIdBeforeTagSearch && appState.collectionIdForEntryBeforeTagSearch) {
                 appState.activeEntryId = appState.entryIdBeforeTagSearch;
                 appState.activeCollectionId = appState.collectionIdForEntryBeforeTagSearch;
@@ -1946,7 +1893,9 @@
                  appState.activeCollectionId ? renderCollectionTimelineView() : navigateTo('home');
             }
         };
-        document.getElementById('delete-collection-btn').onclick = async () => { /* ... same as before ... */ 
+
+
+        document.getElementById('delete-collection-btn').onclick = async () => {
             const col = appState.collections.find(c => c.id === appState.activeCollectionId);
             if (!col || !confirm(`Delete collection "${col.name}" and ALL its entries? This cannot be undone.`)) return;
             try {
@@ -1959,38 +1908,38 @@
                 appState.activeCollectionId = null; await loadCollections(); renderHomeView(); navigateTo('home');
             } catch (error) { console.error('Error deleting collection:', error); alert('Error deleting collection.'); }
         };
-        document.getElementById('delete-entry-btn').onclick = async () => { /* ... same as before ... */ 
-             if (!appState.activeEntryId || !confirm("Are you sure you want to delete this entry?")) return;
+
+        document.getElementById('delete-entry-btn').onclick = async () => {
+            if (!appState.activeEntryId || !confirm("Are you sure you want to delete this entry?")) return;
             try {
                 const { error } = await supabaseClient.from('entries').delete().eq('id', appState.activeEntryId);
                 if (error) throw error;
                 appState.activeEntryId = null; await renderCollectionTimelineView();
             } catch (error) { console.error('Error deleting entry:', error); alert('Error deleting entry.'); }
         };
-        document.getElementById('switch-to-signup').onclick = () => { 
-            loginError.classList.add('hidden'); loginInfo.classList.add('hidden');
-            navigateTo('signup'); 
-        };
-        document.getElementById('switch-to-login').onclick = () => {
-            signupError.classList.add('hidden'); signupSuccess.classList.add('hidden');
-            navigateTo('login'); 
-        };
-        document.getElementById('edit-entry-btn').onclick = () => { /* ... same as before ... */ 
-             const entry = appState.activeEntries.find(e => e.id === appState.activeEntryId);
+
+        document.getElementById('switch-to-signup').onclick = () => navigateTo('signup');
+        document.getElementById('switch-to-login').onclick = () => navigateTo('login');
+
+        document.getElementById('edit-entry-btn').onclick = () => {
+            const entry = appState.activeEntries.find(e => e.id === appState.activeEntryId);
             if (entry) { renderEditEntryForm(entry); navigateTo('editEntry'); }
         };
-        document.getElementById('back-to-detail-btn').onclick = () => { /* ... same as before ... */ 
+        document.getElementById('back-to-detail-btn').onclick = () => {
             const entry = appState.activeEntries.find(e => e.id === appState.activeEntryId) || appState.editingEntryOriginal;
             if (entry) { renderEntryDetailView(entry); navigateTo('entryDetail'); } 
             else { renderCollectionTimelineView(); }
         };
-        editAddMoreImagesInput.onchange = (e) => { /* ... same as before ... */ 
+
+        editAddMoreImagesInput.onchange = (e) => {
             appState.editEntryFilesToAdd = Array.from(e.target.files);
             renderEditEntryNewImagePreviews();
         };
+
         document.getElementById('edit-add-custom-tag-btn').onclick = handleAddCustomTagForEditEntry;
         editTagBarEl.addEventListener('keypress', e => { if (e.target.id === 'edit-custom-tag-input' && e.key === 'Enter') { e.preventDefault(); handleAddCustomTagForEditEntry(); }});
-        editEntryForm.onsubmit = async (e) => { /* ... same as before ... */ 
+
+        editEntryForm.onsubmit = async (e) => {
             e.preventDefault();
             const editLoader = document.getElementById('edit-upload-loader'); 
             const saveBtn = document.getElementById('save-entry-btn');
@@ -2000,7 +1949,7 @@
             try {
                 const newUploadedImageUrls = [];
                 for (const file of appState.editEntryFilesToAdd) {
-                    const url = await uploadImage(file, appState.currentUser.id); 
+                    const url = await uploadImage(file, appState.currentUser.id); // Corrected from imageUrl to url
                     newUploadedImageUrls.push(url);
                 }
 
@@ -2037,32 +1986,24 @@
                 editLoader.classList.add('hidden'); 
                 saveBtn.disabled = false; 
                 appState.editEntryFilesToAdd = [];
-                // appState.editEntryExistingImageUrls = []; // No! This is reset when renderEditEntryForm is called.
+                appState.editEntryExistingImageUrls = []; // Should be reset from original entry on next edit
                 editNewImagePreviewsContainer.innerHTML = '';
             }
         };
 
+
         let touchstartX = 0, touchendX = 0;
-        const entryDetailViewEl = views.entryDetail; // Ensure views.entryDetail is assigned
-        if (entryDetailViewEl) { // Check if element exists before adding listeners
-            function handleSwipe() {
-                const swipeThreshold = 50; 
-                if (touchendX < touchstartX - swipeThreshold) document.getElementById('next-entry-btn').click();
-                if (touchendX > touchstartX + swipeThreshold) document.getElementById('prev-entry-btn').click();
-            }
-            entryDetailViewEl.addEventListener('touchstart', e => { touchstartX = e.changedTouches[0].screenX; }, {passive: true});
-            entryDetailViewEl.addEventListener('touchend', e => { touchendX = e.changedTouches[0].screenX; handleSwipe(); }, {passive: true});
-        } else {
-            console.warn("#entry-detail-view not found for swipe listeners.");
+        const entryDetailViewEl = views.entryDetail;
+        function handleSwipe() {
+            const swipeThreshold = 50; 
+            if (touchendX < touchstartX - swipeThreshold) document.getElementById('next-entry-btn').click();
+            if (touchendX > touchstartX + swipeThreshold) document.getElementById('prev-entry-btn').click();
         }
+        entryDetailViewEl.addEventListener('touchstart', e => { touchstartX = e.changedTouches[0].screenX; }, {passive: true});
+        entryDetailViewEl.addEventListener('touchend', e => { touchendX = e.changedTouches[0].screenX; handleSwipe(); }, {passive: true});
 
-
-        // DOMContentLoaded is used to ensure onAuthStateChange is set up early,
-        // but most of the UI logic (like initial navigation) will be handled by onAuthStateChange itself.
-        document.addEventListener('DOMContentLoaded', () => { 
-            console.log("DOM fully loaded and parsed. Supabase client initialized.");
-            // onAuthStateChange will handle initial session and navigation.
-            // No explicit navigateTo() here unless it's a fallback for no auth state.
+        document.addEventListener('DOMContentLoaded', async () => { 
+            await checkAuth(); 
 
             lightboxCloseBtn.addEventListener('click', closeLightbox);
             lightboxZoomInBtn.addEventListener('click', zoomInLightbox);
@@ -2076,5 +2017,3 @@
     </script>
 </body>
 </html>
-
-
