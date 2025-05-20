@@ -995,27 +995,91 @@ if (loginForm) {
 
 if (signupForm) {
     signupForm.onsubmit = async (e) => {
-        e.preventDefault(); signupError.classList.add('hidden'); signupError.textContent = '';
+        e.preventDefault();
+        signupError.classList.add('hidden');
+        signupError.textContent = '';
         const usernameVal = document.getElementById('username').value;
         const phoneVal = document.getElementById('phone').value;
         const emailVal = document.getElementById('email').value;
         const passwordVal = document.getElementById('password').value;
+
+        console.log('Signup attempt with:', { usernameVal, phoneVal, emailVal });
+
         try {
             const { data: authData, error: authError } = await supabaseClient.auth.signUp({ email: emailVal, password: passwordVal });
-            if (authError) throw authError;
-            if (authData.user) {
-                const { error: profileError } = await supabaseClient.from('profiles').insert({ id: authData.user.id, username: usernameVal, phone: phoneVal });
-                if (profileError) console.error('Profile creation error:', profileError);
-                // Check if session is immediately available (auto-confirm might be on)
-                if (authData.session) { await checkAuth(); }
-                else {
+            console.log('Auth signup response:', { authData: authData ? 'User/Session present' : 'No user/session', authError });
+
+            if (authError) {
+                console.error('Auth signup failed:', JSON.stringify(authError, null, 2));
+                throw authError; // Re-throw to be caught by the outer catch
+            }
+
+            if (authData && authData.user) { // Check both authData and authData.user
+                console.log('Auth user created, ID:', authData.user.id);
+                console.log('Attempting to insert profile with data:', {
+                    // Ensure these key names match your 'profiles' table column names EXACTLY
+                    id: authData.user.id,       // Or user_id: authData.user.id if your column is user_id
+                    username: usernameVal,
+                    phone: phoneVal
+                });
+
+                // ***** THIS IS THE PROFILE INSERTION CODE *****
+                const { data: newProfile, error: profileError } = await supabaseClient
+                    .from('profiles')
+                    .insert({
+                        // Ensure these key names match your 'profiles' table column names EXACTLY
+                        id: authData.user.id,       // Or user_id: authData.user.id
+                        username: usernameVal,
+                        phone: phoneVal
+                    })
+                    .select() // IMPORTANT: To get back the inserted row or a more detailed error
+                    .single(); // .single() ensures we expect one row back or a specific error if not.
+
+                if (profileError) {
+                    console.error('PROFILE INSERTION FAILED. Error details:', JSON.stringify(profileError, null, 2));
+                    signupError.textContent = 'Account created, but profile setup failed. Please contact support. (Error code: PIF)';
+                    signupError.classList.remove('hidden');
+                    signupError.style.color = 'var(--danger-color)';
+                    return; // Stop if profile creation fails
+                }
+
+                console.log('Profile inserted successfully:', newProfile);
+                // Update appState.currentUser immediately with profile info
+                // Note: authData.user might not have custom claims/metadata yet.
+                // We are constructing a more complete currentUser object here.
+                appState.currentUser = {
+                    id: authData.user.id,
+                    email: authData.user.email,
+                    // Add other fields from authData.user if needed (e.g., created_at)
+                    username: newProfile.username, // Use username from the successfully inserted profile
+                    phone: newProfile.phone      // Use phone from the successfully inserted profile
+                };
+
+
+                if (authData.session) { // User is immediately active (e.g., email confirmation disabled or auto-confirmed)
+                    console.log('Session available post-signup, proceeding to checkAuth (which will re-fetch profile if needed).');
+                    await checkAuth(); // checkAuth will re-fetch profile if necessary and navigate
+                } else { // Email confirmation likely required
+                    console.log('Email confirmation required for new user.');
                     signupError.textContent = 'Account created! Please check your email to confirm and then log in.';
                     signupError.classList.remove('hidden');
                     signupError.style.color = 'var(--primary-accent)';
                     setTimeout(() => navigateTo('login'), 4000);
                 }
+            } else {
+                // This case should ideally not be reached if authError is null,
+                // as auth.signUp should return { data: { user: User, session: Session | null }, error: null } on success.
+                console.warn('Auth signup successful but no user or session data returned in authData. This is unexpected.');
+                signupError.textContent = 'An unexpected issue occurred during signup (Code: ASU_ND). Please try again.';
+                signupError.classList.remove('hidden');
+                signupError.style.color = 'var(--danger-color)';
             }
-        } catch (error) { signupError.textContent = error.message; signupError.classList.remove('hidden'); signupError.style.color = 'var(--danger-color)';}
+        } catch (error) { // Catch errors from auth.signUp or any re-thrown profileError
+            console.error('Overall signup process error:', error);
+            signupError.textContent = error.message || 'An error occurred during signup.';
+            signupError.classList.remove('hidden');
+            signupError.style.color = 'var(--danger-color)';
+        }
     };
 }
 
